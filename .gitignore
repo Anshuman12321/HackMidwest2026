@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ripple credentials and local Site state
+.env.*
+!.env.example
+.sites-runtime/
+
+# Buildless Site source is intentionally versioned
+!sites/ripple-demo/dist/
+!sites/ripple-demo/dist/**

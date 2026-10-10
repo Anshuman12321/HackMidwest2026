@@ -1,0 +1,377 @@
+{
+  "scope": "Active Enterprise-Bench Maple Payments opportunities",
+  "native_count": 30,
+  "verified": [
+    {
+      "source_id": "OPP-001",
+      "display_id": "OPP-1",
+      "title": "[Maple OPP-001] TechFlow Payments \u2014 Platform Expansion",
+      "account": "[Maple] TechFlow Payments Inc",
+      "value": {
+        "amount": "120000",
+        "currency": "USD"
+      },
+      "source_stage": "negotiation",
+      "native_stage": "negotiation"
+    },
+    {
+      "source_id": "OPP-003",
+      "display_id": "OPP-3",
+      "title": "[Maple OPP-003] Acme SaaS \u2014 Annual Renewal",
+      "account": "[Maple] Acme SaaS",
+      "value": {
+        "amount": "45000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-004",
+      "display_id": "OPP-5",
+      "title": "[Maple OPP-004] Meridian Capital Group - New Logo",
+      "account": "[Maple] Meridian Capital Group",
+      "value": {
+        "amount": "420000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-005",
+      "display_id": "OPP-4",
+      "title": "[Maple OPP-005] Construtech - Mexico City New Logo",
+      "account": "[Maple] Construtech",
+      "value": {
+        "amount": "150000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-006",
+      "display_id": "OPP-2",
+      "title": "[Maple OPP-006] Vantara - Strategic Expansion",
+      "account": "[Maple] Vantara",
+      "value": {
+        "amount": "280000",
+        "currency": "USD"
+      },
+      "source_stage": "negotiation",
+      "native_stage": "negotiation"
+    },
+    {
+      "source_id": "OPP-007",
+      "display_id": "OPP-7",
+      "title": "[Maple OPP-007] Beacon Logistics - Expansion",
+      "account": "[Maple] Beacon Logistics",
+      "value": {
+        "amount": "195000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-008",
+      "display_id": "OPP-6",
+      "title": "[Maple OPP-008] Air Force ACES Program",
+      "account": "[Maple] Air Force ACES Program",
+      "value": {
+        "amount": "520000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-009",
+      "display_id": "OPP-9",
+      "title": "[Maple OPP-009] DoD Strategic Initiative Alpha",
+      "account": "[Maple] DoD Strategic Initiative Alpha",
+      "value": {
+        "amount": "310000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-010",
+      "display_id": "OPP-8",
+      "title": "[Maple OPP-010] DoD Logistics Modernization",
+      "account": "[Maple] DoD Logistics Modernization",
+      "value": {
+        "amount": "275000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-011",
+      "display_id": "OPP-10",
+      "title": "[Maple OPP-011] LATAM Manufacturing Prospect A",
+      "account": "[Maple] LATAM Manufacturing Prospect A",
+      "value": {
+        "amount": "80000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-012",
+      "display_id": "OPP-11",
+      "title": "[Maple OPP-012] LATAM Manufacturing Prospect B",
+      "account": "[Maple] LATAM Manufacturing Prospect B",
+      "value": {
+        "amount": "75000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-013",
+      "display_id": "OPP-12",
+      "title": "[Maple OPP-013] LATAM Manufacturing Prospect C",
+      "account": "[Maple] LATAM Manufacturing Prospect C",
+      "value": {
+        "amount": "70000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-014",
+      "display_id": "OPP-13",
+      "title": "[Maple OPP-014] Central Region Corp - Platform",
+      "account": "[Maple] Central Region Corp",
+      "value": {
+        "amount": "165000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-015",
+      "display_id": "OPP-14",
+      "title": "[Maple OPP-015] Pacific Northwest Solutions",
+      "account": "[Maple] Pacific Northwest Solutions",
+      "value": {
+        "amount": "120000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-016",
+      "display_id": "OPP-15",
+      "title": "[Maple OPP-016] Pacific North Corp",
+      "account": "[Maple] Pacific North Corp",
+      "value": {
+        "amount": "140000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-017",
+      "display_id": "OPP-16",
+      "title": "[Maple OPP-017] Northeast Solutions - SMB",
+      "account": "[Maple] Northeast Solutions Inc",
+      "value": {
+        "amount": "35000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-018",
+      "display_id": "OPP-17",
+      "title": "[Maple OPP-018] Midwest Dynamics - SMB",
+      "account": "[Maple] Midwest Dynamics LLC",
+      "value": {
+        "amount": "28000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-020",
+      "display_id": "OPP-18",
+      "title": "[Maple OPP-020] Midwest Tech Partners - SMB",
+      "account": "[Maple] Midwest Tech Partners",
+      "value": {
+        "amount": "32000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-021",
+      "display_id": "OPP-19",
+      "title": "[Maple OPP-021] Southeast Tech Partners - SMB",
+      "account": "[Maple] Southeast Tech Partners",
+      "value": {
+        "amount": "25000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-022",
+      "display_id": "OPP-20",
+      "title": "[Maple OPP-022] Atlantic Coast Solutions - SMB",
+      "account": "[Maple] Atlantic Coast Solutions",
+      "value": {
+        "amount": "40000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-023",
+      "display_id": "OPP-21",
+      "title": "[Maple OPP-023] Pacific Coast SaaS - SMB",
+      "account": "[Maple] Pacific Coast SaaS Inc",
+      "value": {
+        "amount": "38000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-024",
+      "display_id": "OPP-22",
+      "title": "[Maple OPP-024] West Coast Ventures - SMB",
+      "account": "[Maple] West Coast Ventures",
+      "value": {
+        "amount": "42000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-025",
+      "display_id": "OPP-23",
+      "title": "[Maple OPP-025] UK Commerce Ltd",
+      "account": "[Maple] UK Commerce Ltd",
+      "value": {
+        "amount": "28000",
+        "currency": "GBP"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-026",
+      "display_id": "OPP-24",
+      "title": "[Maple OPP-026] Ireland Digital Ltd",
+      "account": "[Maple] Ireland Digital Ltd",
+      "value": {
+        "amount": "26000",
+        "currency": "GBP"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-027",
+      "display_id": "OPP-26",
+      "title": "[Maple OPP-027] Horizon Entertainment \u2013 Creator Tier Expansion",
+      "account": "[Maple] Horizon Entertainment Group",
+      "value": {
+        "amount": "145000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-028",
+      "display_id": "OPP-25",
+      "title": "[Maple OPP-028] SunPath Commerce \u2013 Full Platform",
+      "account": "[Maple] SunPath Commerce",
+      "value": {
+        "amount": "72000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-029",
+      "display_id": "OPP-27",
+      "title": "[Maple OPP-029] Cascara Health \u2013 New Logo",
+      "account": "[Maple] Cascara Health",
+      "value": {
+        "amount": "90000",
+        "currency": "USD"
+      },
+      "source_stage": "prospecting",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-030",
+      "display_id": "OPP-28",
+      "title": "[Maple OPP-030] Harrington Financial - Enterprise Platform",
+      "account": "[Maple] Harrington Financial",
+      "value": {
+        "amount": "340000",
+        "currency": "USD"
+      },
+      "source_stage": "proposal",
+      "native_stage": "contract"
+    },
+    {
+      "source_id": "OPP-033",
+      "display_id": "OPP-30",
+      "title": "[Maple OPP-033] FinPago Brasil \u2013 LATAM Expansion",
+      "account": "[Maple] FinPago Brasil",
+      "value": {
+        "amount": "150000",
+        "currency": "USD"
+      },
+      "source_stage": "qualification",
+      "native_stage": "qualification"
+    },
+    {
+      "source_id": "OPP-034",
+      "display_id": "OPP-29",
+      "title": "[Maple OPP-034] TechFlow Payments \u2013 Renewal at Risk",
+      "account": "[Maple] TechFlow Payments Inc",
+      "value": {
+        "amount": "75000",
+        "currency": "USD"
+      },
+      "source_stage": "negotiation",
+      "native_stage": "negotiation"
+    }
+  ],
+  "source_stages": {
+    "negotiation": 3,
+    "proposal": 7,
+    "qualification": 11,
+    "prospecting": 9
+  },
+  "native_stages": {
+    "negotiation": 3,
+    "contract": 7,
+    "qualification": 20
+  }
+}

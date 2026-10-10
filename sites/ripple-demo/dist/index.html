@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Ripple: start with a business outcome, find cited Maple Payments evidence, and review the right investigation in DevRev.">
+<title>Ripple — evidence before action</title>
+<link rel="stylesheet" href="styles.css"><script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#demo">Skip to demo</a>
+<header class="mast"><a class="wordmark" href="#">ripple<span> / </span>field notes</a><nav aria-label="Main"><a href="#demo">Demo</a><a href="#data">Data</a><a href="#integrations">Integrations</a><a href="#agents">Build</a></nav><span class="stamp">10 OCT 2026 · TEAM 01</span></header>
+<main>
+<section class="hero">
+<div><p class="eyebrow">OUTCOME → EVIDENCE → REVIEW → WORK</p><h1>Find the context.<br>Make the right move.</h1><p class="lead">Start with a business problem. Use DevRev to find the people, product parts, and history that matter. Review the plan before action.</p><a class="button" href="#demo">Explore the demo <span aria-hidden="true">↘</span></a></div>
+<aside class="hero-note"><span class="number">01</span><p class="eyebrow">THE COMPANY IS ALREADY HERE</p><h2>Maple Payments</h2><p>Enterprise-Bench data is now in our DevRev workspace. Start with its Brazil renewal incident.</p><div class="metric"><strong>19,900</strong><span>imported work records<br>issues, tickets, active deals</span></div><p class="small">Verified snapshot. This site is a plan preview. It has no live DevRev connection.</p></aside>
+</section>
+<section id="demo" class="section">
+<div class="section-heading"><p class="eyebrow">01 / THE DEMO</p><h2>Restore renewals.<br>Prevent double billing.</h2><p>Replay the March 2026 source incident. Select a step. Open the evidence. Remove the existing issue to see how the recommendation changes.</p></div>
+<div class="demo-toolbar"><label class="toggle"><input id="history-toggle" type="checkbox" checked> Include the existing investigation</label><span class="small">Source dates: 20–24 March 2026</span></div>
+<div class="tabs" role="tablist" aria-label="Demo steps">
+<button role="tab" id="tab-outcome" aria-controls="demo-panel" aria-selected="true" data-step="outcome">1. Outcome</button>
+<button role="tab" id="tab-evidence" aria-controls="demo-panel" aria-selected="false" tabindex="-1" data-step="evidence">2. Evidence</button>
+<button role="tab" id="tab-impact" aria-controls="demo-panel" aria-selected="false" tabindex="-1" data-step="impact">3. Impact</button>
+<button role="tab" id="tab-plan" aria-controls="demo-panel" aria-selected="false" tabindex="-1" data-step="plan">4. Plan</button>
+</div>
+<div id="demo-panel" class="demo-panel" role="tabpanel" aria-labelledby="tab-outcome" tabindex="0"></div>
+<p id="demo-status" class="small status" role="status" aria-live="polite"></p>
+</section>
+<section id="data" class="section">
+<div class="section-heading"><p class="eyebrow">02 / AVAILABLE CONTEXT</p><h2>Know what is loaded.</h2><p>The full source archive is larger than the native import. Search the inventory. Select a row for its mapping and limits.</p></div>
+<div class="controls"><label>Find data<input id="data-search" type="search" placeholder="Try tickets, people, or documents"></label><label>Coverage<select id="data-filter"><option value="all">All data</option><option value="full">Full native import</option><option value="partial">Partial native import</option><option value="metadata">Metadata or discussion context</option></select></label><a class="text-link" href="https://app.devrev.ai/hack-midwest-2026-team01-a016028f" target="_blank" rel="noopener">Open DevRev ↗</a></div>
+<div class="inventory-layout"><div class="table-scroll"><table><caption class="sr-only">Imported dataset coverage</caption><thead><tr><th>Data</th><th>In DevRev</th><th>In source</th><th>Coverage</th></tr></thead><tbody id="inventory-rows"></tbody></table><p id="inventory-status" class="small" role="status"></p></div><aside id="inventory-detail" class="detail-box" aria-live="polite"></aside></div>
+<details class="source-note"><summary>What the import changes</summary><p>Native dates show import time. Use source dates in the record body for history. The native owner is the importer. Resolve source people from the directories. Shared product parts do not prove a causal link.</p><p>All 30 active deals were checked for account, value, currency, stage, target date, and original content. The remaining closed ticket backlog and closed deals were not loaded.</p><p>Source: <a href="https://github.com/devrev/enterprise-bench" target="_blank" rel="noopener">Enterprise-Bench</a>. Public main snapshot; confirm the organizer's pinned version before submission.</p></details>
+</section>
+<section id="integrations" class="section">
+<div class="section-heading"><p class="eyebrow">03 / INTEGRATION CHOICES</p><h2>Connect for a reason.</h2><p>Start with DevRev. Add a service when the outcome needs it. Select an option to compare purpose, setup, and the next check.</p></div>
+<div class="integration-layout"><div id="integration-list" class="choice-list" aria-label="Integration options"></div><article id="integration-detail" class="integration-detail" aria-live="polite"></article></div>
+<div class="callout"><strong>One company. One evidence set.</strong><p>Keep Enterprise-Bench as the business source. GitHub, Jira, and Slack can receive approved outputs. Do not invent their history to make the demo larger.</p></div>
+</section>
+<section id="agents" class="section">
+<div class="section-heading"><p class="eyebrow">04 / BUILD THE FIRST AGENT</p><h2>One agent.<br>Clear stages.</h2><p>Use a Computer skill and the native tools first. Add a small evidence MCP if source metadata or citations need a better read path.</p></div>
+<div id="agent-flow" class="agent-flow" aria-label="Agent stages"></div><article id="agent-detail" class="agent-detail" aria-live="polite"></article>
+<div class="build-grid"><article><p class="eyebrow">DEVELOPER A / DATA & TOOLS</p><h3>Make the evidence usable.</h3><p>Fix the source version. Normalize dates and owners. Expose exact citations. Add permissions and stable action keys.</p></article><article><p class="eyebrow">DEVELOPER B / AGENT & DEMO</p><h3>Make the outcome clear.</h3><p>Build the skill. Review the Context Bundle and Action Graph. Test denied approval and a second user.</p></article></div>
+</section>
+<section class="handoff section"><p class="eyebrow">TAKE THE DETAILS WITH YOU</p><h2>Ready to build.</h2><p>The handoff records the imports, source limits, UI steps, integration setup, and agent contracts.</p><div class="downloads"><a class="button" href="docs/data-and-integrations.md" download>Data & integration handoff ↓</a><a class="button secondary" href="docs/agent-build-guide.md" download>Agent build guide ↓</a></div><p class="small">The agent, custom MCP service, and real approved execution are still to be built. This site does not create work or send messages.</p></section>
+</main>
+<footer><span>ripple / evidence before action</span><a href="https://github.com/Anshuman12321/HackMidwest2026" target="_blank" rel="noopener">Source & handoff ↗</a></footer>
+<dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="dialog-top"><p class="eyebrow">SOURCE EVIDENCE</p><button id="close-evidence" class="close" aria-label="Close evidence">×</button></div><h2 id="evidence-title"></h2><p id="evidence-meta" class="small"></p><div id="evidence-body"></div><p class="small">This is a benchmark source record, not a live runtime observation. Find the native ID in DevRev global search.</p></dialog>
+</body></html>

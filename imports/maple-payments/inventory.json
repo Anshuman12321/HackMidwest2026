@@ -1,0 +1,135 @@
+{
+  "captured_at": "2026-10-10T22:54:31.185524+00:00",
+  "scope": "Manifest-retained Maple Payments import; remote reads only",
+  "archive_sha256": "24d6d134067ffc763c953fab8ec28022c98bb4da11aa0e4456798d7f9bb656bc",
+  "families": {
+    "issues": {
+      "source": 8448,
+      "loaded": 8448,
+      "not_loaded": 0,
+      "source_states": {
+        "in_progress": 3362,
+        "done": 5086
+      },
+      "loaded_states": {
+        "in_progress": 3362,
+        "done": 5086
+      }
+    },
+    "tickets": {
+      "source": 32768,
+      "loaded": 11422,
+      "not_loaded": 21346,
+      "source_states": {
+        "open": 51,
+        "solved": 32717
+      },
+      "loaded_states": {
+        "open": 51,
+        "solved": 11371
+      }
+    },
+    "opportunities": {
+      "source": 8704,
+      "loaded": 30,
+      "not_loaded": 8674,
+      "source_states": {
+        "negotiation": 3,
+        "closed_won": 5779,
+        "proposal": 7,
+        "qualification": 11,
+        "prospecting": 9,
+        "closed_lost": 2895
+      },
+      "loaded_states": {
+        "negotiation": 3,
+        "proposal": 7,
+        "prospecting": 9,
+        "qualification": 11
+      }
+    },
+    "accounts": {
+      "loaded": 42,
+      "verification": "manifest/journal; articles also read remotely"
+    },
+    "contacts": {
+      "loaded": 62,
+      "verification": "manifest/journal; articles also read remotely"
+    },
+    "parts": {
+      "loaded": 40,
+      "verification": "manifest/journal; articles also read remotely"
+    },
+    "articles": {
+      "loaded": 73,
+      "verification": "manifest/journal; articles also read remotely"
+    },
+    "comments": {
+      "loaded": 26,
+      "verification": "manifest/journal; articles also read remotely"
+    }
+  },
+  "checks": {
+    "native_work_counts_by_exact_source_reference": {
+      "issues": 8448,
+      "tickets": 11422,
+      "opportunities": 30
+    },
+    "published_articles_with_extracted_content": 73
+  },
+  "demo": [
+    {
+      "source_id": "ISS-031",
+      "native_id": "ISS-42",
+      "title": "[Maple ISS-031] Reroute subscriptions to alternative cluster in Brazil to mitigate incident",
+      "source_created_at": "2026-03-20T16:00:00Z",
+      "original_record_matches": true
+    },
+    {
+      "source_id": "ISS-8448",
+      "native_id": "ISS-8457",
+      "title": "[Maple ISS-8448] Add retry backoff for failed external service calls",
+      "source_created_at": "2024-12-26T18:42:00Z",
+      "original_record_matches": true
+    },
+    {
+      "source_id": "TKT-124",
+      "native_id": "TKT-50",
+      "title": "[Maple TKT-124] Subscription renewals failing for our Brazil customers",
+      "source_created_at": "2026-03-20T17:15:00Z",
+      "original_record_matches": true
+    },
+    {
+      "source_id": "TKT-125",
+      "native_id": "TKT-52",
+      "title": "[Maple TKT-125] Brazil subscriptions not charging on renewal",
+      "source_created_at": "2026-03-21T09:30:00Z",
+      "original_record_matches": true
+    },
+    {
+      "source_id": "TKT-126",
+      "native_id": "TKT-53",
+      "title": "[Maple TKT-126] Recurring billing broken for Brazil \u2014 affecting our recently launched Brazil subscriptions",
+      "source_created_at": "2026-03-21T11:00:00Z",
+      "original_record_matches": true
+    }
+  ],
+  "people": {
+    "crm_rows": 289,
+    "pm_rows": 5,
+    "unique_source_ids": 294,
+    "overlapping_ids": [],
+    "unresolved_work_people_ids_in_full_source": []
+  },
+  "documents": {
+    "raw_files": 66,
+    "raw_by_directory": {
+      "internal_docs": 8,
+      "maple_kb": 55,
+      "transcripts": 3
+    },
+    "metadata_articles": 7,
+    "source_conversations": 23,
+    "source_comments": 26
+  }
+}
