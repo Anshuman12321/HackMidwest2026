@@ -4,7 +4,7 @@ Updated 11 October 2026. This handoff covers the local React app, verified Supab
 
 ## Current state
 
-The agent, authenticated review service, durable worker, and Snap-in package are implemented. The local browser uses the shared controller and native-card renderer. Fixture mode is fully offline; live preview reads DevRev but creates only simulated `PREVIEW-*` tickets. The React app in `apps/ripple/web` uses the same signed controller with persistent local or Supabase storage. The hosted Ripple app is deployed on Vercel at https://ripple-orpin-six.vercel.app (project `ripple`), with writes enabled in production. It runs the investigator in-process, stores state in Supabase schema `ripple_hosted`, and creates a ticket only after explicit approval in the UI. The Team01 snap-in installed earlier was read-only; the repository snap-in is now a launcher card that shows status and links to the hosted app. Pushing this branch does not deploy or install anything. See [the README Vercel section](../apps/ripple/README.md#hosted-deployment-vercel).
+The agent, authenticated review service, durable worker, and Snap-in package are implemented. The local browser uses the shared controller and native-card renderer. Fixture mode is fully offline; live preview reads DevRev but creates only simulated `PREVIEW-*` tickets. The React app in `apps/ripple/web` uses the same signed controller with persistent local or Supabase storage. The hosted Ripple app is deployed on Vercel at https://ripple-orpin-six.vercel.app (project `ripple`), with writes enabled in production. It runs the investigator in-process, stores state in Supabase schema `ripple_hosted`, and creates a ticket only after explicit approval in the UI. The Team01 snap-in installed earlier was read-only. It has been replaced by the launcher card (installation `c27b5754-ccd3-4b35-9a66-16b3801f2f48`), which shows status and links to the hosted app. Pushing this branch does not deploy or install anything. See [the README Vercel section](../apps/ripple/README.md#hosted-deployment-vercel). Design decisions and rollout challenges are recorded in [ripple-hosted-decisions.md](ripple-hosted-decisions.md).
 
 The product decision is **the solved issue is the business outcome**. **Investigate issue** derives `Resolve <display ID>: <current title>` and anchors retrieval to the accessible native issue, including its description and acceptance criteria. **Refine goal or add constraints** is optional and starts collapsed. Blank or whitespace-only goals use the issue. Saved refinements survive re-investigation; **Fresh review** resets intake to the issue. Default constraints prohibit production-setting changes and keep customer updates as drafts. The v2 contract still contains a resolved outcome string; no schema or database migration was added for optional intake.
 
@@ -20,7 +20,7 @@ DevRev inspection used MCP for identity, issue, snap-in and function contexts. B
 
 The initial Supabase verification created fixture records in `public` before mode isolation was introduced. Those records remain preserved; all new local runs use isolated schemas. Before enabling a future connected/public runtime, separate those legacy simulation records from the native execution namespace.
 
-The current suite passes 126 TypeScript tests. Native ticket creation is implemented behind explicit approval in the hosted app. Local read-only actions are tested to reject signed approvals/owner changes without scheduling work.
+The current suite passes 125 TypeScript tests. Native ticket creation is implemented behind explicit approval in the hosted app. Local read-only actions are tested to reject signed approvals/owner changes without scheduling work.
 
 ## Local setup
 
@@ -76,15 +76,15 @@ The earlier preview scrolling/interaction pass verified blank refinement, owner 
 
 ## Remaining DevRev deployment work
 
-Use [the runtime/deployment guide](../apps/ripple/README.md#deployment) and [environment template](../apps/ripple/.env.example). Supabase schema `ripple_hosted` is provisioned and the Vercel deployment is live (README, "Hosted deployment (Vercel)"). Real ticket creation awaits the user's explicit approval in the UI. The repository snap-in is a launcher card; it must be rebuilt and reinstalled to ship. The table lists rollout items still open. The Vercel path replaces the separate review service and polling worker, and does not reconfigure the teammate's existing agents.
+Use [the runtime/deployment guide](../apps/ripple/README.md#deployment) and [environment template](../apps/ripple/.env.example). Supabase schema `ripple_hosted` is provisioned and the Vercel deployment is live (README, "Hosted deployment (Vercel)"). Real ticket creation awaits the user's explicit approval in the UI. The launcher snap-in is installed in Team01; rebuild and upgrade it (never with `--force`) after changes. The table lists rollout items still open. The Vercel path replaces the separate review service and polling worker, and does not reconfigure the teammate's existing agents.
 
 | Work | Handoff requirement |
 | --- | --- |
 | Service and database | Hosted schema is `ripple_hosted` (applied per `migrations/hosted-setup.md`; the function never migrates). Configure database backups, restricted roles, stable `RIPPLE_SECRET` and log redaction. `migrate.ts` and `main.ts` apply only to the container path. |
 | Agent | Vercel uses the in-process `hosted-agent.ts` port; no separate agent process is needed there. `agent-main.ts` remains for connected/local modes and needs its own protected bearer and start command. |
 | Delegated auth | `DEVREV_TOKEN` is the DEVU-6 personal access token by user decision, which suits this single-user app. Rotate it, since it was exposed in a session log. Any multi-user rollout needs a deployment-owned actor-delegated MCP endpoint and verified native assignment roles. |
-| Snap-in | Regenerate `build.tar.gz`, configure `ripple_service_url`, and set keyring `ripple_bridge_secret` to the value of `RIPPLE_BRIDGE_SECRET` (not `RIPPLE_SECRET`). Install through the DevRev version/install flow, and verify scope names and installation rights against the current platform reference. |
-| Native acceptance | On ISS-42, verify the launcher card status, the **Open in Ripple** link, the signed `/native/status` call, and that the snap-in exposes no write controls. Then approve one revision in the web app and verify real ticket readback. |
+| Snap-in | Installed and active. After changes, regenerate `build.tar.gz` and run a non-forced `snap_in_version upgrade`. `ripple_service_url` is configured. No keyring is used; the unused `ripple_bridge_secret` keyring and `RIPPLE_BRIDGE_SECRET` env var can be deleted. |
+| Native acceptance | On ISS-42, verify the launcher card status, the **Open in Ripple** link, the actor-authenticated `/native/status` call, and that the snap-in exposes no write controls. Then approve one revision in the web app and verify real ticket readback. |
 | Second-user acceptance | Not applicable to the single-user deployment. Required before any multi-user rollout: a fresh authorized session must create its own review, fail to read another actor's plan or approve copied signed controls, and complete approved work only with its actual native permissions. |
 | Runtime recovery | Inline `workOnce` replaces the polling worker on Vercel. Verify lease resumption through `/initialize` and `/cron`, and exercise timeout-after-create reconciliation against the real native API. Local PGlite and simulated writes do not establish multi-process or native-write behavior. |
 
@@ -108,7 +108,9 @@ A subsequent broader run kept native ISS-42 as the verified `starting_issue` and
 | Browser rendering | `apps/ripple/web/app.tsx`, `app.css`, `build-web.ts`; `src/local-app.ts` serves React. `preview` remains the separate simulation lab. |
 | Agent and exact revalidation | `apps/ripple/src/agent-main.ts`, `agent-http.ts`, `agent-process.ts`, `contracts/investigate.server.ts`, `scripts/agent_bridge.py` |
 | Approval, storage, recovery | `apps/ripple/src/service.ts`, `store.ts`, `security.ts`, `migrations/001_ripple.sql` |
-| Native installation bridge | `apps/ripple/snap-in/manifest.yaml`, `src/bridge.ts`, `src/function-factory.ts` |
+| Native launcher snap-in | `apps/ripple/snap-in/manifest.yaml`, `src/bridge.ts`, `build.ts`, `BRIDGE_CONTRACT.md` |
+| Hosted app (Vercel) | `apps/ripple/src/hosted-app.ts`, `hosted-agent.ts`, `shared-app.ts`, `review-view.ts`, `build-vercel.ts`, `migrations/hosted-setup.md` |
+| Decision rail and login | `apps/ripple/web/review-pane.tsx`, `review-pane.css`, `login.tsx` |
 | Intake regression tests | `apps/ripple/src/ui.test.ts`, `native.test.ts`, `local-native.test.ts`, `agent-http.test.ts` |
 
 The shared executable contract remains [contracts/investigation.ts](../contracts/investigation.ts) v2. Older agent/data documents retain historical proposals below their current-state notes; use this handoff and the runtime guide for current behavior.

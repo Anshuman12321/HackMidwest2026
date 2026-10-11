@@ -1,19 +1,20 @@
-# Ripple hosted bridge contract: POST /native/status
+# Ripple hosted status contract: POST /native/status
 
 Server-to-server endpoint on the hosted Ripple app (`RIPPLE_PUBLIC_URL`), called by the snap-in launcher card.
 It needs no access-code cookie and has no Origin check. It is read-only and never returns evidence content or tokens.
 
 ## Request
 
-`POST {RIPPLE_PUBLIC_URL}/native/status`, `Content-Type: application/json`, body `{"issue": "<issue DON>"}` (the exact raw bytes are hashed).
+`POST {RIPPLE_PUBLIC_URL}/native/status`, `Content-Type: application/json`, body `{"issue": "<issue DON>"}`. The snap-in reads the DON from the snap-kit event's `payload.object_id`.
 
 Headers:
 
-- `X-Ripple-Bridge`: `Secrets(RIPPLE_BRIDGE_SECRET).sign({ path: '/native/status', hash: sha256hex(rawBody), timestamp: Date.now() }, 'bridge')`.
-  Same format as `src/bridge.ts` / `src/http.ts`. Valid for 60 seconds. `RIPPLE_BRIDGE_SECRET` is at least 32 characters and is
-  a different secret from `RIPPLE_SECRET`.
-- `Authorization: Bearer <DevRev actor session token>`. The server calls `dev-users.self` with this token (user must be active and in
-  the workspace), then `works.get` on the issue with the same token.
+- `Authorization: Bearer <DevRev actor session token>` (`event.context.secrets.actor_session_token`). The server calls `dev-users.self`
+  with this token (user must be active and in the workspace), then `works.get` on the issue with the same token.
+
+There is no shared-secret proof. An earlier version signed an `X-Ripple-Bridge` header with a developer keyring, but DevRev never
+delivered that keyring to the function (see `docs/ripple-hosted-decisions.md`, challenge C5 and decision S3). The endpoint is
+read-only and returns status only, so the verified actor token is the access check.
 
 ## Response 200
 
@@ -33,7 +34,10 @@ Headers:
 
 ## Errors
 
-- 403 `permission_denied`: bad, missing, stale (over 60s) or wrong-path proof; body hash mismatch; token rejected by DevRev; user inactive or in another workspace; issue unreadable or in another workspace.
-- 401 `unauthorized`: missing `Authorization: Bearer` header (checked after the proof).
+- 403 `permission_denied`: token rejected by DevRev; user inactive or in another workspace; issue unreadable or in another workspace.
+- 401 `unauthorized`: missing `Authorization: Bearer` header.
 - 400 `invalid_request`: body is not JSON with a string `issue`.
-- 503 `not_configured`: server has no `RIPPLE_BRIDGE_SECRET`.
+- 503 `not_configured`: the native gateway cannot verify members.
+
+On any failure the card still renders **Open in Ripple** with "Ripple status unavailable right now." and logs one line
+(`ripple_status_failed <message>`, never secrets) to the snap-in function logs.
