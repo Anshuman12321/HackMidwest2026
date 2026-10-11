@@ -43,56 +43,18 @@ A **Context Bundle** captures the relevant past/present evidence, what it suppor
 | Incident context investigator | Reports/issues/docs → cited chronology, symptoms, prior decisions, gaps | Primary demo agent over imported DevRev records |
 | Evidence validator | Candidate claims → valid IDs/excerpts, timestamps, permissions, conflicts | Deterministic schema/citation checks plus a small model review; reject unsupported claims |
 | Impact reviewer | Proposed action + Context Bundle → dependencies, affected accounts, acceptance checks | Source-backed part/account joins; label unverified runtime effects |
-| Investigation coordinator | Reviewed plan → approved idempotent work creation and links | Native tools if sufficient; otherwise a narrow REST action adapter |
+| Investigation coordinator | Reviewed plan → approved idempotent work creation and links | Native tools if sufficient; otherwise a narrow action adapter after reviewing the native tool gap |
 | Account/renewal reviewer | Named account → active deal facts, support themes, commitments, unknowns | Second workflow using 42 accounts, 30 active deals, docs/transcripts; no invented churn score |
 
 Start with the investigator and validator stages. Add coordinator writes after the read-only answer is consistently grounded. Account review is a good reuse demonstration. Code-change review remains limited until an allowed source repository/runtime exists; it must not claim to inspect code that was never provided.
 
 ## Shared evidence and action contracts
 
-Use structured objects between stages. This example is a proposed contract; the API adapters must translate it to the current DevRev tools.
+The canonical v1 contract now exists in [contracts/investigation.ts](../contracts/investigation.ts), with [field definitions and execution rules](../contracts/README.md), runtime validation, JSON Schema, and source-derived examples. Both developers must use this file rather than maintain separate interfaces.
 
-```typescript
-type Evidence = {
-  sourceId: string;                 // e.g. ISS-031
-  sourcePath: string;
-  nativeId?: string;                // verified mapping, not guessed
-  originalEventTime?: string;
-  retrievedAt: string;
-  contentVersion: string;           // content hash or upstream version
-  excerpt: string;
-  locator: string;                  // field + character/line range
-  sourceOwnerId?: string;
-  ownerResolution: "resolved" | "missing" | "conflicting";
-  visibility: "internal";
-  coverage: "native-imported" | "archive-only";
-};
+Three logical operations connect the agent, UI, and executor: investigate an outcome, revise current owner assignments, and approve or reject the exact plan revision/digest. The response contains a Context Bundle of entities, cited facts/inferences, relationships, and gaps, plus an Action Graph of scoped issue tasks. The execution result records every attempted or unattempted task, returned native IDs, and partial failures.
 
-type Claim = {
-  text: string;
-  kind: "source-fact" | "inference" | "unknown";
-  evidenceIds: string[];
-};
-
-type ActionPlan = {
-  planId: string;
-  outcome: string;
-  referenceDate: string;
-  evidenceVersions: Record<string, string>;
-  existingIncidentId: string;
-  actions: Array<{
-    actionKey: string;              // stable per incident + check purpose
-    title: string;
-    body: string;
-    partId: string;
-    ownerId: string;                // an authorized current user
-    evidenceIds: string[];
-    dependsOn: string[];
-  }>;
-};
-```
-
-Keep an approval record with approver identity, time, canonical plan hash, approved destinations, and expiry. Keep a separate execution ledger mapping action keys to native output IDs and results. The source issue date is March; native import timestamps are October. Report both when needed. Resolve original source owners through the directories, then ask/select a current authorized owner for new work; the importer's ownership is not a historical assignment.
+Approval binds the full displayed context and plan. A source owner is historical provenance; new work needs a verified current native DevRev user. Native import timestamps are not source dates. The v1 schemas and guard functions do not implement authentication, storage, or native execution. See the contract's adapter mapping and durable-ledger requirements before building writes.
 
 ## Minimal tool surface
 
@@ -164,8 +126,8 @@ The deployed skill should stay short. Keep schemas, lengthy reference material, 
 
 | Developer | First deliverables |
 |---|---|
-| Data / integrations | Confirm dataset pin; implement source/native normalization, record-level retrieval, permissions, citation locators, coverage, and optional remote MCP. Validate actual native tool schemas and idempotent action adapter. |
-| Agent / demonstration | Build outcome-led skill, Context Bundle and Action Graph outputs, evidence review, approval preview, and repeatable demo. Test with a second user and maintain the skill/reference text. |
+| Agent / evidence | Implement outcome-led investigation, permitted source/native normalization, exact citations, original metadata, gaps, and validated Context Bundle / Action Graph output. |
+| UI / executor | Render the shared response, select current owners, revise and approve exact plans, implement authenticated storage and an idempotent native action adapter, and report actual work IDs. |
 
 Agree on the shared schemas and the exact Brazil evidence set first. Use real returned native IDs; demo fixtures are copies of benchmark evidence, not alternate business history.
 

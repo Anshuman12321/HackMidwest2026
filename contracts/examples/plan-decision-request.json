@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0",
+  "plan_id": "00000000-0000-4000-8000-000000000003",
+  "expected_revision": 2,
+  "plan_digest": "31d9333f3639d2b6d6534902dc6a8bd4eba1400d8c6d00983655d85056b82946",
+  "decision": "approve",
+  "idempotency_key": "00000000-0000-4000-8000-000000000004"
+}

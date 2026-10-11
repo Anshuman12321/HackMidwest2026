@@ -4,6 +4,7 @@ Ripple starts with a business outcome, finds relevant organizational evidence, a
 
 - [Data, completed work, UI instructions, and integration handoff](docs/data-and-integrations.md)
 - [Agent architecture and build starting point](docs/agent-build-guide.md)
+- [Shared investigation contract, exact types, and validated examples](contracts/README.md)
 - [Interactive architecture site](https://ripple-demo-architecture.pearlyperch6.chatgpt.site/)
 - [Imported Maple Payments dataset and tools](imports/maple-payments/README.md)
 - [Original vision](idea.md)
@@ -15,6 +16,17 @@ The demo uses Enterprise-Bench's Brazil subscription renewal incident. It replac
 Local `.env` contains `DEVREV_PAT` and is excluded from Git. Never put credentials in the site or documents. Do not resume the full benchmark backlog without a new request.
 
 ## Verification
+
+The shared contract runs locally without DevRev credentials:
+
+```sh
+cd contracts
+npm ci
+npm run check
+npm test
+```
+
+Existing data/site checks (run from the repository root):
 
 ```sh
 python3 imports/maple-payments/verify_imported_scope.py
