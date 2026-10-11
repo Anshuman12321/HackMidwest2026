@@ -9,7 +9,8 @@
   "scripts": {
     "build:examples": "node build-examples.ts",
     "check": "tsc --noEmit",
-    "test": "node --test investigation.test.ts"
+    "test": "node --test investigation.test.ts investigate.test.ts",
+    "investigate": "node run-investigation.ts"
   },
   "dependencies": {
     "zod": "4.6.5"

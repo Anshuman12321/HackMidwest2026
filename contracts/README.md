@@ -2,7 +2,7 @@
 
 This is the shared boundary between the investigation agent, the review UI, and the DevRev executor. It is implemented as strict Zod schemas with inferred TypeScript types in [investigation.ts](investigation.ts). Both developers import those definitions. The agent returns JSON that must pass validation before the UI displays a plan.
 
-The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The contract and examples are ready; the agent, authenticated handlers, durable execution ledger, and live UI still need implementation. These files do not create DevRev work.
+The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The contract and examples are ready. The read-only retrieval and validated preview slice is implemented; see [the implementation handoff](../docs/investigation-implementation.md). Authenticated handlers, the durable execution ledger, and live UI remain separate implementation work. These files do not create DevRev work.
 
 ## Three operations
 

@@ -2,6 +2,11 @@
 
 Updated 10 October 2026. This is a proposed implementation over the imported data, not a claim that these agents or tools already exist. See [the data/integration handoff](data-and-integrations.md) for scope, IDs, setup, and constraints.
 
+The first read-only retrieval-to-preview slice is now implemented and live-verified;
+see [investigation implementation](investigation-implementation.md) for run commands,
+validation, actual MCP tool gaps and the UI/executor handoff. Execution and a deployed
+Computer skill remain separate work.
+
 ## First agent and demonstration
 
 Build **one outcome-led investigation agent** in DevRev Computer. Use a reusable skill plus the available native read/action tools. Add a narrow evidence MCP only when native tools cannot reliably expose source dates, owners, exact excerpts, or coverage. Several named reasoning roles can share this one orchestrator; multiple LLM services are unnecessary for the first demo.
