@@ -12,9 +12,9 @@ import {
 } from './review.server.ts';
 
 const example = (name: string) => JSON.parse(readFileSync(new URL(`./examples/${name}.json`, import.meta.url), 'utf8'));
-const initial = () => InvestigationResponseSchema.parse(example('investigation-response'));
-const ready = () => InvestigationResponseSchema.parse(example('revised-investigation-response'));
-const decision = () => PlanDecisionRequestSchema.parse(example('plan-decision-request'));
+const initial = () => InvestigationResponseSchema.parse(example('multi-investigation-response'));
+const ready = () => InvestigationResponseSchema.parse(example('multi-revised-investigation-response'));
+const decision = () => PlanDecisionRequestSchema.parse({ ...example('plan-decision-request'), plan_digest: ready().action_graph!.plan_digest });
 const now = new Date('2026-10-10T23:00:00Z');
 const invalidResponse = (edit: (r: InvestigationResponse) => void) => {
   const r = ready(); edit(r); assert.equal(InvestigationResponseSchema.safeParse(r).success, false);
@@ -23,20 +23,20 @@ const invalidResponse = (edit: (r: InvestigationResponse) => void) => {
 function mockCompleted(): ExecutionResult {
   const r = ready(), g = r.action_graph!, d = decision();
   return {
-    schema_version: '1.0', investigation_id: r.investigation_id, plan_id: g.plan_id,
+    schema_version: '2.0', investigation_id: r.investigation_id, plan_id: g.plan_id,
     revision: g.revision, plan_digest: g.plan_digest, idempotency_key: d.idempotency_key,
     approval: { approval_id: '00000000-0000-4000-8000-000000000099',
       actor_id: g.actions[0]!.owner_id!, recorded_at: now.toISOString(), plan_digest: g.plan_digest },
     status: 'completed', results: g.actions.map((a, i) => ({
       action_id: a.action_id, action_key: a.action_key, status: 'created',
-      native: { id: `don:core:test:devo/test:issue/unit-${i}`, display_id: `TEST-${i}`, url: null }, error: null,
+      native: { id: `don:core:test:devo/test:ticket/unit-${i}`, display_id: `TEST-${i}`, url: null }, error: null,
     })), error: null,
   };
 }
 
 test('source-derived examples conform to all six message schemas', () => {
   InvestigationRequestSchema.parse(example('investigation-request'));
-  initial(); ready(); RevisePlanRequestSchema.parse(example('revise-plan-request'));
+  initial(); ready(); RevisePlanRequestSchema.parse({ ...example('revise-plan-request'), owner_assignments: initial().action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: ready().action_graph!.actions[0]!.owner_id! })) });
   decision(); PlanDecisionRequestSchema.parse(example('reject-plan-request'));
   ExecutionResultSchema.parse(example('rejected-execution-result'));
   OperationErrorSchema.parse(example('operation-error'));
@@ -79,16 +79,16 @@ test('historical USER IDs cannot be used as current DevRev assignees', () => {
   invalidResponse(r => { r.action_graph!.actions[0]!.owner_id = 'USER-001'; });
 });
 test('owner edits produce the example revision and invalidate the prior digest', () => {
-  const r = applyOwnerAssignments(initial(), example('revise-plan-request'), now);
+  const r = applyOwnerAssignments(initial(), { ...example('revise-plan-request'), owner_assignments: initial().action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: ready().action_graph!.actions[0]!.owner_id! })) }, now);
   assert.deepEqual(r, ready());
   assert.notEqual(r.action_graph!.plan_digest, initial().action_graph!.plan_digest);
-  assert.throws(() => applyOwnerAssignments(r, example('revise-plan-request'), now), /Stale/);
+  assert.throws(() => applyOwnerAssignments(r, { ...example('revise-plan-request'), owner_assignments: initial().action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: ready().action_graph!.actions[0]!.owner_id! })) }, now), /Stale/);
 });
 test('duplicate or unknown owner assignments are rejected', () => {
-  const q = example('revise-plan-request');
+  const q = { ...example('revise-plan-request'), owner_assignments: initial().action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: ready().action_graph!.actions[0]!.owner_id! })) };
   q.owner_assignments.push(q.owner_assignments[0]);
   assert.equal(RevisePlanRequestSchema.safeParse(q).success, false);
-  const unknown = example('revise-plan-request'); unknown.owner_assignments[0].action_id = 'task-missing';
+  const unknown = { ...example('revise-plan-request'), owner_assignments: initial().action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: ready().action_graph!.actions[0]!.owner_id! })) }; unknown.owner_assignments[0].action_id = 'task-missing';
   assert.throws(() => applyOwnerAssignments(initial(), unknown, now), /Unknown action/);
 });
 test('plan digest is stable under object key ordering and rejects non-JSON values', () => {
@@ -118,16 +118,16 @@ test('unassigned tasks block approval; runtime production gaps permit investigat
 test('a current plan can be rejected after expiry without assigning owners', () => {
   const r = initial();
   assertDecisionMatches(r, { ...decision(), decision: 'reject', expected_revision: 1, plan_digest: r.action_graph!.plan_digest }, new Date('2027-01-01T00:00:00Z'));
-  assertExecutionMatches(ready(), example('rejected-execution-result'), example('reject-plan-request'));
+  assertExecutionMatches(ready(), { ...example('rejected-execution-result'), plan_digest: ready().action_graph!.plan_digest }, { ...decision(), decision: 'reject', idempotency_key: example('rejected-execution-result').idempotency_key });
 });
-test('execution requires approval and issue-shaped distinct output identities', () => {
+test('execution requires approval and ticket-shaped distinct output identities', () => {
   const e = mockCompleted(); ExecutionResultSchema.parse(e);
   e.approval = null; assert.equal(ExecutionResultSchema.safeParse(e).success, false);
   const missing = mockCompleted(); missing.results[0]!.native = null;
   assert.equal(ExecutionResultSchema.safeParse(missing).success, false);
   const duplicate = mockCompleted(); duplicate.results[1]!.native = duplicate.results[0]!.native;
   assert.equal(ExecutionResultSchema.safeParse(duplicate).success, false);
-  const wrongType = mockCompleted(); wrongType.results[0]!.native!.id = 'don:core:test:devo/test:ticket/unit';
+  const wrongType = mockCompleted(); wrongType.results[0]!.native!.id = 'don:core:test:devo/test:issue/unit';
   assert.equal(ExecutionResultSchema.safeParse(wrongType).success, false);
 });
 test('completed batches must cover the whole plan and match the exact decision', () => {
@@ -145,4 +145,46 @@ test('uncertain writes require reconciliation and cannot be reported completed',
   e.results[0]!.error!.retry = 'reconcile_first';
   assertExecutionMatches(ready(), e, decision());
   e.status = 'completed'; assert.equal(ExecutionResultSchema.safeParse(e).success, false);
+});
+
+test('Brazil v2 bundles three work sections into one internal execution ticket', () => {
+ const r = InvestigationResponseSchema.parse(example('investigation-response'));
+ assert.equal(r.action_graph!.actions.length, 1);
+ assert.equal(r.action_graph!.actions[0]!.operation, 'create_ticket');
+ assert.equal(r.action_graph!.actions[0]!.visibility, 'internal');
+ assert.equal(r.action_graph!.actions[0]!.acceptance_checks.length, 6);
+ assert.equal(r.action_graph!.dependencies.length, 0);
+ assert.equal(InvestigationResponseSchema.safeParse({ ...r, schema_version: '1.0' }).success, false);
+ const e = mockCompleted(); e.results[0]!.native!.id = 'don:core:test:devo/test:issue/1';
+ assert.equal(ExecutionResultSchema.safeParse(e).success, false);
+});
+const editReq = (plan: InvestigationResponse, edits: unknown) => RevisePlanRequestSchema.parse({
+  schema_version: '2.0', plan_id: plan.action_graph!.plan_id, expected_revision: plan.action_graph!.revision, content_edits: edits });
+test('content edits seal a new revision and digest; the old digest cannot approve', () => {
+  const before = ready(), id = before.action_graph!.actions[0]!.action_id;
+  const after = applyOwnerAssignments(before, editReq(before, [{ action_id: id, title: 'Edited title', body_markdown: 'Edited body.' }]), now);
+  const a = after.action_graph!, b = before.action_graph!;
+  assert.equal(a.revision, b.revision + 1);
+  assert.notEqual(a.plan_digest, b.plan_digest);
+  assert.equal(a.plan_digest, computePlanDigest(after));
+  assert.equal(a.actions[0]!.title, 'Edited title'); assert.equal(a.actions[0]!.body_markdown, 'Edited body.');
+  for (const k of ['evidence_ids', 'context_entity_ids', 'part_entity_id', 'action_key', 'owner_id'] as const)
+    assert.deepEqual(a.actions[0]![k], b.actions[0]![k]);
+  assert.throws(() => assertDecisionMatches(after, decision(), now), /Stale|digest/);
+  assertDecisionMatches(after, { ...decision(), expected_revision: a.revision, plan_digest: a.plan_digest }, now);
+  assert.throws(() => applyOwnerAssignments(after, editReq(before, [{ action_id: id, title: 'Again' }]), now), /Stale/);
+});
+test('no-op, unknown, empty, duplicate and oversize content edits are rejected', () => {
+  const r = ready(), t = r.action_graph!.actions[0]!;
+  assert.throws(() => applyOwnerAssignments(r, editReq(r, [{ action_id: t.action_id, title: t.title }]), now), /changes nothing/);
+  assert.throws(() => applyOwnerAssignments(r, editReq(r, [{ action_id: 'task-missing', title: 'x' }]), now), /Unknown action/);
+  const bad = (edits: unknown) => RevisePlanRequestSchema.safeParse({ schema_version: '2.0', plan_id: r.action_graph!.plan_id,
+    expected_revision: r.action_graph!.revision, content_edits: edits }).success;
+  assert.equal(bad([{ action_id: t.action_id }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: '   ' }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'x'.repeat(201) }]), false);
+  assert.equal(bad([{ action_id: t.action_id, body_markdown: 'x'.repeat(4001) }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'a' }, { action_id: t.action_id, title: 'b' }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'ok', extra: 1 }]), false);
+  assert.equal(RevisePlanRequestSchema.safeParse({ schema_version: '2.0', plan_id: r.action_graph!.plan_id, expected_revision: 1 }).success, false);
 });

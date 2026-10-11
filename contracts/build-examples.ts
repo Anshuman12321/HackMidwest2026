@@ -52,7 +52,7 @@ const entities: any[] = workEvidence.map((e: any) => ({
 const object = (family: string, key: string) => ({ id: manifest[family][key].id, display_id: manifest[family][key].display_id, url: null });
 entities.push({ entity_id: 'entity-subscriptions', kind: 'part', label: 'Subscriptions',
   native: object('parts', 'PART-003'), source_ref: { record_id: 'PART-003', path: 'pm_json_data/maple_parts.json' } });
-for (const [key, name] of [['ACC-001','TechFlow Payments Inc'],['ACC-002','GlobalCommerce Solutions'],['ACC-005','GlobalMart']])
+for (const [key, name] of [['ACC-001','TechFlow Payments Inc'],['ACC-002','GlobalCommerce Solutions'],['ACC-005','GlobalMart']] as const)
   entities.push({ entity_id: 'entity-' + key.toLowerCase(), kind: 'account', label: name,
     native: object('accounts', key), source_ref: { record_id: key, path: 'crm_json_data/accounts.json' } });
 const evidence = workEvidence.map((e: any) => ({
@@ -86,13 +86,13 @@ const actions = [
     body: 'Prepare drafts for TechFlow, GlobalCommerce, and GlobalMart. Include confirmed symptoms, remaining gaps, and the next investigation step. Do not send messages.',
     evidence: ticketRefs, checks: ['Link each draft to its customer report', 'Keep unverified ETAs and recovery claims out of the drafts'] },
 ].map(a => ({ action_id: a.action_id, action_key: `ripple/maple/ISS-031/${a.purpose}`,
-  operation: 'create_issue', title: a.title,
+  operation: 'create_ticket', visibility: 'internal', title: a.title,
   body_markdown: a.body + '\n\nAcceptance checks:\n' + a.checks.map(c => '- ' + c).join('\n') +
     '\n\nEvidence:\n' + a.evidence.map(ref => {
       const e = evidence.find((e: any) => e.evidence_id === ref)!;
       const entity = entities.find((entity: any) => entity.entity_id === e.entity_id)!;
       return `- ${e.source_ref.record_id} / ${entity.native.display_id} (${ref})`;
-    }).join('\n'), priority: 'p1',
+    }).join('\n'),
   part_entity_id: 'entity-subscriptions', owner_id: null,
   context_entity_ids: ['entity-iss-031', ...(a.action_id === 'task-customer-drafts' ? ['entity-acc-001', 'entity-acc-002', 'entity-acc-005'] : [])],
   evidence_ids: a.evidence, acceptance_checks: a.checks }));
@@ -136,11 +136,29 @@ const response = sealPlan(InvestigationResponseSchema.parse({
       reason: 'Use scheduler findings when defining replay safety checks.' }],
   },
 }));
+write('multi-investigation-response.json', response);
+const multi = structuredClone(response);
+multi.action_graph!.revision = 2;
+multi.action_graph!.actions.forEach(a => { a.owner_id = manifest.owner; });
+write('multi-revised-investigation-response.json', sealPlan(multi));
+const checks = actions.flatMap(a => a.acceptance_checks);
+response.action_graph!.actions = [{
+  action_id: 'task-brazil-execution', action_key: 'ripple/maple/ISS-031/brazil-execution',
+  operation: 'create_ticket', visibility: 'internal',
+  title: 'Investigate Brazil renewals and define safe recovery',
+  body_markdown: actions.map((a, i) => `## ${i + 1}. ${a.title}\n\n${a.body_markdown}`).join('\n\n'),
+  part_entity_id: 'entity-subscriptions', owner_id: null,
+  context_entity_ids: [...new Set(actions.flatMap(a => a.context_entity_ids))],
+  evidence_ids: [...new Set(actions.flatMap(a => a.evidence_ids))], acceptance_checks: checks,
+}];
+response.action_graph!.dependencies = [];
+const bundled = sealPlan(response);
+Object.assign(response, bundled);
 write('investigation-request.json', request);
 write('investigation-response.json', response);
 write('revise-plan-request.json', RevisePlanRequestSchema.parse({
   schema_version: VERSION, plan_id: response.action_graph!.plan_id, expected_revision: 1,
-  owner_assignments: actions.map(a => ({ action_id: a.action_id, owner_id: manifest.owner })),
+  owner_assignments: response.action_graph!.actions.map(a => ({ action_id: a.action_id, owner_id: manifest.owner })),
 }));
 const revised: InvestigationResponse = structuredClone(response);
 revised.action_graph!.revision = 2;

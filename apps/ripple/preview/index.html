@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ripple · Issue workspace</title><link rel="stylesheet" href="/preview.css"></head>
+<body>
+<div class="workspace">
+  <aside class="navigation" aria-label="Workspace context">
+    <div class="wordmark">devrev<span> / </span></div>
+    <div class="organization"><span class="org-mark">M</span><div>Maple Payments<small>Team01 workspace</small></div></div>
+    <div class="nav-label">BUILD</div><a class="nav-item active" href="#record-title" aria-label="Current issue"><span>▤</span> Issues <span class="nav-count">01</span></a>
+    <div class="nav-label">SNAP-IN</div><a class="nav-item ripple-link" href="#ripple-panel"><span>◎</span> Ripple <i></i></a>
+    <div class="nav-caption">From a problem<br>to the next right work.</div>
+    <div class="nav-footer"><span class="avatar" id="reader-initials">R</span><div id="reader-name">Local preview<small>Review workspace</small></div></div>
+  </aside>
+  <main class="record-pane">
+    <header class="record-top"><div class="breadcrumb">Build <span>/</span> Issues <span>/</span> <b id="issue-label">ISS-42</b></div><span class="preview-chip" id="mode-label">FIXTURE PREVIEW</span></header>
+    <div class="record-body">
+      <div class="eyebrow">ISSUE / <span id="record-id">ISS-42</span></div>
+      <h1 id="record-title">Loading issue…</h1>
+      <div class="record-meta"><span class="chip">Issue context</span><span class="subtle">Issue resolution is the goal.</span></div>
+      <div class="record-section"><div class="section-label">01 / THE PROBLEM</div><div id="record-description" class="record-description"></div></div>
+      <section class="record-section"><div class="section-label">02 / THE INVESTIGATION</div><div id="record-investigation"><p class="record-empty">A clear next step starts with the context.</p><p class="subtle">Run Ripple to connect this issue to the evidence, understand what remains unknown, and review the proposed work.</p><button class="text-button" id="record-run">Investigate this issue <span>↗</span></button></div></section>
+      <details class="lab-settings"><summary>Preview controls <span>Simulated writes</span></summary><div class="toolbar"><label>Sources<select id="fixture"><option value="single">Brazil · one ticket</option><option value="multi">Separate work · three tickets</option></select></label><label>Write response<select id="behavior"><option value="ok">Successful</option><option value="commit_timeout">Timeout after creation</option><option value="timeout">Uncertain, no result yet</option><option value="partial">Partial batch failure</option></select></label></div><p id="preview-footer">This local preview uses the shared Snap-kit payload. Writes create simulated PREVIEW IDs.</p></details>
+    </div>
+  </main>
+  <aside class="ripple-panel" id="ripple-panel" aria-label="Ripple investigation">
+    <header class="panel-header"><div class="panel-brand"><span class="mark">R</span><div><strong>Ripple</strong><small id="panel-subtitle">Issue investigation</small></div><button id="restart" class="header-button">Fresh review</button></div><ol class="steps" aria-label="Investigation navigation"><li aria-current="step"><button data-section="issue-card">Issue</button></li><li><button data-section="findings-card" disabled>Context</button></li><li><button data-section="graph-card" disabled>Impact</button></li><li><button data-section="ticket-card" disabled>Review</button></li><li><button data-section="approval-card" disabled>Act</button></li></ol></header>
+    <div class="panel-scroll"><div id="notice" role="status" aria-live="polite"></div><div id="brief" aria-busy="true"></div><div class="panel-note">Evidence first. Human approval before action.</div></div>
+  </aside>
+</div>
+<dialog id="graph-dialog" aria-labelledby="graph-title"><div class="dialog-header"><div><div class="eyebrow">RIPPLE / IMPACT GRAPH</div><h2 id="graph-title">Follow the evidence.</h2></div><div class="dialog-tools"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-reset">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="graph-close" aria-label="Close impact graph">✕</button></div></div><div class="dialog-body"><div id="graph-canvas" class="graph-canvas"></div><aside id="graph-inspector" class="graph-inspector" aria-label="Graph selection details"></aside></div></dialog>
+<script src="/preview.js" defer></script>
+</body></html>

@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+node_modules
+**/node_modules
+references
+sites
+**/build
+**/dist
+**/*.tar.gz

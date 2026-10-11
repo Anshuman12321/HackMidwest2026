@@ -1,8 +1,8 @@
-# Ripple investigation contract v1
+# Ripple investigation contract v2
 
 This is the shared boundary between the investigation agent, the review UI, and the DevRev executor. It is implemented as strict Zod schemas with inferred TypeScript types in [investigation.ts](investigation.ts). Both developers import those definitions. The agent returns JSON that must pass validation before the UI displays a plan.
 
-The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The contract and examples are ready; the agent, authenticated handlers, durable execution ledger, and live UI still need implementation. These files do not create DevRev work.
+The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The native UI, authenticated service, storage and executor are implemented in [apps/ripple](../apps/ripple/README.md). The read-only investigation planner and retrieval adapter are described in [the implementation handoff](../docs/investigation-implementation.md). These contract files make no remote writes. V1 is preserved under [v1/](v1/) and is not accepted by the v2 executor.
 
 ## Three operations
 
@@ -28,7 +28,7 @@ Each operation can return `OperationError` instead of a success response. It con
 | Action Graph | `plan_id`, `revision`, `plan_digest`, `expires_at`, `existing_work_entity_ids`, `actions`, `dependencies` |
 | Execution result | Investigation/plan IDs, `revision`, `plan_digest`, `idempotency_key`, nullable server `approval`, `status`, per-action `results`, nullable overall `error` |
 
-`schema_version` is exactly `"1.0"`. All fields are required; use `null` for an unavailable nullable value and `[]` for an empty collection. Unknown fields are rejected. UUIDs identify requests, investigations, plans, approval receipts, and decision attempts. Timestamps use RFC 3339 with a timezone. The canonical file specifies every bound and enum.
+`schema_version` is exactly `"2.0"`. All fields are required; use `null` for an unavailable nullable value and `[]` for an empty collection. Unknown fields are rejected. UUIDs identify requests, investigations, plans, approval receipts, and decision attempts. Timestamps use RFC 3339 with a timezone. The canonical file specifies every bound and enum.
 
 The response states are `needs_input`, `review_required`, and `no_action`. Only `needs_input` contains questions; only `review_required` contains an Action Graph. Loading state and UI layout belong to the UI, not to this response.
 
@@ -46,18 +46,18 @@ Keep three identity spaces separate:
 
 An evidence item has `evidence_id`, `entity_id`, `source_ref`, `original_event_at`, `retrieved_at`, `source_owner`, `visibility`, `coverage`, and `excerpt`.
 
-- `source_ref`: `dataset_id`, archive `path`, source `record_id`, and `content_sha256` for the complete original source row. V1 uses dataset `enterprise-bench/maple-payments`.
+- `source_ref`: `dataset_id`, archive `path`, source `record_id`, and `content_sha256` for the complete original source row. V2 uses dataset `enterprise-bench/maple-payments`.
 - `excerpt`: exact `text`, `field_path`, zero-based `start`, exclusive `end`, and `units: "unicode_code_points"`. Do not normalize text. `original_record.description` means the imported original-record wrapper; for an archive row, resolve the field after that prefix. For a non-string field, cite its canonical JSON representation.
 - `source_owner`: original `person_id`, `name`, and resolution `resolved`, `missing`, or `conflicting`. This does not authorize assignment. The example deliberately leaves source owners unresolved.
 - `coverage`: `native_imported` or `archive_only`. Native evidence requires a mapped native entity. Bundle coverage records the archive checksum, retrieval scope, and limitations. Archive-only evidence cannot appear under `imported_only`.
 
-Dates have separate meanings: the March source event, October native import, retrieval time, and investigation reference time are not interchangeable. A null request reference time asks the server to resolve its current time; the response records the resolved value. A historical reference time scopes the question; it does not prove the source snapshot existed then. An as-of investigation must also filter records by source dates.
+Dates have separate meanings: the March source event, October native import, retrieval time, and investigation reference time are not interchangeable. A null request reference time asks the investigation interface to resolve its reference time; the response records the resolved value. The Brazil fixture explicitly uses its March replay date. A historical reference time scopes the question; it does not prove the source snapshot existed then. An as-of investigation must also filter records by source dates.
 
 A claim has `claim_id`, `kind: "fact" | "inference"`, `statement`, and nonempty `evidence_ids`. A fact can state **what an issue says**; it cannot turn that diagnosis into independently observed runtime behavior. Missing information is a gap with `gap_id`, `question`, `why_it_matters`, `blocks`, and `next_step`. No synthetic confidence score is required.
 
 A relationship has local endpoints, `kind`, `basis`, `statement`, and citations. A `candidate_relation` must have basis `inference`; other relationships use `native_link` or `source_record`. Shared subscription membership supports investigation context, not a proven shared payment worker.
 
-V1 includes at most 60 entities, 40 evidence items, 40 claims, 80 relationships, 20 gaps, and 8 actions. Retrieve narrowly rather than send the entire imported dataset. Additional connectors will need a reviewed source-reference extension; do not label Slack or GitHub content as benchmark evidence. Opportunity values remain source evidence in v1, not a new normalized financial model; preserve original currencies and account joins.
+V2 includes at most 60 entities, 40 evidence items, 40 claims, 80 relationships, 20 gaps, and 8 actions. Retrieve narrowly rather than send the entire imported dataset. Additional connectors will need a reviewed source-reference extension; do not label Slack or GitHub content as benchmark evidence. Opportunity values remain source evidence in v2, not a new normalized financial model; preserve original currencies and account joins.
 
 ### Tasks and dependencies
 
@@ -65,27 +65,27 @@ Every task has:
 
 ```typescript
 {
-  action_id, action_key, operation: "create_issue",
-  title, body_markdown, priority, part_entity_id, owner_id,
+  action_id, action_key, operation: "create_ticket", visibility: "internal",
+  title, body_markdown, part_entity_id, owner_id,
   context_entity_ids, evidence_ids, acceptance_checks
 }
 ```
 
 `action_key` is stable per incident and task purpose, for example `ripple/maple/ISS-031/replay-safety`. It survives reruns. `part_entity_id` must resolve to a native product part. `owner_id` is a current native DevRev user DON or `null` during preview. All tasks need owners before approval. Historical source users and the importer are not automatically the right owners.
 
-Dependencies have `prerequisite_action_id`, `dependent_action_id`, and `reason`. They form an acyclic investigation order. V1's execution result covers issue creation/reuse only; native linking is a later write operation with its own approval and result reporting. The UI must not claim native dependency links were created by v1.
+Dependencies have `prerequisite_action_id`, `dependent_action_id`, and `reason`. They form an acyclic investigation order. V2's execution result covers internal ticket creation/reuse only; native linking is a later write operation with its own approval and result reporting. The UI must not claim native dependency links were created by v2.
 
-The example reuses `ISS-42` as incident context and proposes three new checks: scheduler behavior, replay safety, and customer update drafts. It does not duplicate the incident. No outbound messages or production changes are in this contract.
+The Brazil example starts from `ISS-42` and proposes one internal execution ticket with scheduler behavior, replay safety, and customer update drafts. The `multi-*` fixtures split those sections into three independently owned tickets. It does not duplicate the incident. No outbound messages or production changes are in this contract.
 
 ### Review and execution
 
-The UI sends owner edits as `{ schema_version, plan_id, expected_revision, owner_assignments: [{ action_id, owner_id }] }`. V1 permits owner edits only. Other task/evidence changes require a new generated preview. Do not silently merge a stale revision.
+The UI sends owner edits as `{ schema_version, plan_id, expected_revision, owner_assignments: [{ action_id, owner_id }] }`. V2 permits owner edits only. Other task/evidence changes require a new generated preview. Do not silently merge a stale revision.
 
 The decision request is:
 
 ```typescript
 {
-  schema_version: "1.0",
+  schema_version: "2.0",
   plan_id,
   expected_revision,
   plan_digest,
@@ -96,7 +96,7 @@ The decision request is:
 
 The client sends no actor, organization, token, approval receipt, or `approved: true` flag. The handler loads the authoritative stored plan and derives the actor and workspace from authentication. It checks current access to every source, target part, and selected owner before writes. A DON that passes the schema is still not proof of existence or permission.
 
-`plan_digest` is SHA-256 of the UTF-8 canonical JSON returned by `reviewSnapshot` in [review.server.ts](review.server.ts). Object keys are sorted, arrays retain order, and there is no whitespace. The snapshot includes schema version, investigation ID, resolved outcome, summary, complete Context Bundle, and complete Action Graph except its own `plan_digest`. Outer request ID, generated time, status, and questions are excluded; response-state validation still applies. Source row hashes use the same canonical JSON function. This is a defined v1 format, not a claim of general RFC 8785 compliance.
+`plan_digest` is SHA-256 of the UTF-8 canonical JSON returned by `reviewSnapshot` in [review.server.ts](review.server.ts). Object keys are sorted, arrays retain order, and there is no whitespace. The snapshot includes schema version, investigation ID, resolved outcome, summary, complete Context Bundle, and complete Action Graph except its own `plan_digest`. Outer request ID, generated time, status, and questions are excluded; response-state validation still applies. Source row hashes use the same canonical JSON function. This is a defined v2 format, not a claim of general RFC 8785 compliance.
 
 Owner edits increment the revision and change the digest. They retain the original expiry. Approval requires the exact ID, revision, digest, unexpired plan, assigned owners, and no gap that blocks `investigation` or `execution`. A `production_change` gap still permits these investigation tasks. Rejection needs no owners and can occur after expiry, but still must match the current stored plan.
 
@@ -113,7 +113,7 @@ Runtime schemas check internal references and state rules. `assertDecisionMatche
 
 ## DevRev MCP mapping confirmed on 10 October 2026
 
-Read-only `discover_schema()` followed by `discover_schema(action_name="create_issue")` confirmed these actual create fields:
+Read-only `discover_schema()` followed by `discover_schema(action_name="create_ticket")` confirmed these actual create fields:
 
 | Contract | Native create input |
 |---|---|
@@ -121,10 +121,10 @@ Read-only `discover_schema()` followed by `discover_schema(action_name="create_i
 | `body_markdown` | `body`; agent must include the reviewed checks and citation references in this text |
 | Resolved `part_entity_id` | `applies_to_part`: native part DON |
 | `owner_id` | `owned_by: [owner_id]` |
-| `priority` | `priority_v2`: p0→1, p1→2, p2→3, p3→4 under the discovered stock enum |
+| `visibility: "internal"` | `visibility: 1` |
 | `action_key` | `external_ref`, documented as unique within the work type |
 
-Required fields are `title`, `applies_to_part`, and `owned_by`. Leave stage and unrelated optional fields out of v1 unless a workspace-required default needs explicit review. Discover the schema in the runtime connection before using these mappings; tenant custom fields and enums can differ. A uniqueness guarantee helps reconciliation but does not replace a durable ledger.
+Required fields are `title`, `applies_to_part`, and `owned_by`. Omit severity and stage in this slice. Issue priority is not translated into ticket severity. If a tenant adds required fields, stop and extend the reviewed contract. Discover the schema in the runtime connection before using these mappings; tenant custom fields and enums can differ. A uniqueness guarantee helps reconciliation but does not replace a durable ledger.
 
 `link_issue_with_issue` also exists, with `source`, `target`, and link types `is_parent_of`, `is_dependent_on`, and `is_duplicate_of`. We did not call create or link actions. Adding native dependency writes requires extending the plan and execution result so link failures are visible.
 
@@ -141,14 +141,13 @@ Required fields are `title`, `applies_to_part`, and `owned_by`. Leave stage and 
 | [investigation.test.ts](investigation.test.ts) | Contract, citation, stale approval, and partial-write checks |
 
 ```sh
-cd contracts
 npm ci
 npm run check
 npm test
-npm run build:examples
+npm run fixtures
 ```
 
-Use Node 24 or later. Example regeneration also uses Python 3's standard library to read the existing archive. It checks the archive checksum and description excerpts, resolves native IDs from the import manifest, and makes no remote calls. Examples use fixed historical/reference times, a captured snapshot, illustrative UUIDs, and a fixed expiry; a live handler must generate new IDs/times and retrieve fresh evidence. Assigned owners are examples, not an approval. Mock successful writes exist only in the unit tests; no new task IDs are invented in the protocol examples.
+Run from the repository root using Node 26. The root lockfile includes the contracts workspace. Example regeneration also uses Python 3's standard library to read the existing archive. It checks the archive checksum and description excerpts, resolves native IDs from the import manifest, and makes no remote calls. Examples use fixed historical/reference times, a captured snapshot, illustrative UUIDs, and a fixed expiry; a live handler must generate new IDs/times and retrieve fresh evidence. Assigned owners are examples, not an approval. Mock successful writes exist only in the unit tests; no new task IDs are invented in the protocol examples.
 
 This is a private source package. Frontend/backend builds can import the TypeScript schemas; do not publish raw TypeScript as a Node `node_modules` dependency without a compilation plan. Keep Node crypto imports in the server file. Breaking field changes require a schema version change and updated fixtures. Add the shared checks to both developers' CI before changing the contract.
 
@@ -157,4 +156,4 @@ This is a private source package. Frontend/backend builds can import the TypeScr
 - Agent developer: normalization, permitted retrieval, source dates/owners, citations, claims/gaps, and a valid `InvestigationResponse`.
 - UI/executor developer: display that response, resolve current owners, submit revision/decision requests, implement authenticated storage/approval/ledger, map approved actions to native tools, and return validated results.
 
-Both use the same example response to build in parallel. First acceptance: a fresh user session retrieves the real four records, shows the reviewed checks, approves revision 2, and receives native task IDs. The denied and repeated-approval paths must produce zero extra work.
+Both use the same example response to build in parallel. First acceptance: a fresh user session retrieves the real four records, shows the reviewed checks, approves revision 2, and receives real native `TKT-*` IDs. The denied and repeated-approval paths must produce zero extra work.

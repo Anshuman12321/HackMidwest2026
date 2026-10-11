@@ -1,0 +1,8 @@
+{
+  "name": "ripple-issue-brief-snap-in",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": { "node": ">=20" }
+}

@@ -4,7 +4,7 @@ import {
   type InvestigationResponse, type PlanDecisionRequest, type RevisePlanRequest, type ExecutionResult,
 } from './investigation.ts';
 
-// Contract v1 sorted-key JSON, UTF-8, no whitespace. Arrays retain their order.
+// Contract sorted-key JSON, UTF-8, no whitespace. Arrays retain their order.
 // Only parsed contract data is permitted: no undefined, non-finite numbers, or Date objects.
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
@@ -77,6 +77,19 @@ export function applyOwnerAssignments(
     const action = graph.actions.find(a => a.action_id === assignment.action_id);
     if (!action) throw new Error('Unknown action in owner assignment');
     action.owner_id = assignment.owner_id;
+  }
+  // Content edits seal a NEW revision/digest exactly like owner changes. They touch only title and body:
+  // evidence_ids, context, part and action_key are untouched, so provenance and the ledger/external_ref key stay stable.
+  // action_key stays stable ON PURPOSE: a ticket already created from an earlier revision keeps that key, and the
+  // changed fingerprint then yields action_conflict (never a second, duplicate ticket). See RippleService.decide/executeAction.
+  for (const edit of q.content_edits ?? []) {
+    const action = graph.actions.find(a => a.action_id === edit.action_id);
+    if (!action) throw new Error('Unknown action in content edit');
+    const changed = (edit.title !== undefined && edit.title !== action.title) ||
+      (edit.body_markdown !== undefined && edit.body_markdown !== action.body_markdown);
+    if (!changed) throw new Error('Content edit changes nothing');
+    if (edit.title !== undefined) action.title = edit.title;
+    if (edit.body_markdown !== undefined) action.body_markdown = edit.body_markdown;
   }
   graph.revision++;
   return sealPlan(r);

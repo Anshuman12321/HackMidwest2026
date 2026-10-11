@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "outcome": "Restore Brazil subscription renewals without double billing",
+  "constraints": [
+    "Do not change production settings",
+    "Keep customer updates as drafts"
+  ],
+  "reference_time": "2026-03-24T10:00:00Z",
+  "scope_hints": {
+    "part_ids": [],
+    "account_ids": [],
+    "starting_object": null
+  }
+}

@@ -1,0 +1,653 @@
+{
+  "schema_version": "2.0",
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "investigation_id": "00000000-0000-4000-8000-000000000002",
+  "generated_at": "2026-10-10T22:54:31.185524+00:00",
+  "status": "review_required",
+  "outcome": {
+    "statement": "Restore Brazil subscription renewals without double billing",
+    "success_criteria": [
+      "Renewals resume",
+      "Missed renewals can be replayed without duplicate billing"
+    ],
+    "constraints": [
+      "Do not change production settings",
+      "Keep customer updates as drafts"
+    ],
+    "reference_time": "2026-03-24T10:00:00Z"
+  },
+  "summary": "The reports distinguish missed scheduled renewals from working manual charges. The existing issue proposes rerouting with safe replay; validate the plan before acting.",
+  "questions": [],
+  "context_bundle": {
+    "entities": [
+      {
+        "entity_id": "entity-iss-031",
+        "kind": "issue",
+        "label": "Reroute subscriptions to alternative cluster in Brazil to mitigate incident",
+        "native": {
+          "id": "don:core:dvrv-us-1:devo/1mWckJhGyy:issue/42",
+          "display_id": "ISS-42",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "ISS-031",
+          "path": "pm_json_data/issues.json"
+        }
+      },
+      {
+        "entity_id": "entity-tkt-124",
+        "kind": "ticket",
+        "label": "Subscription renewals failing for our Brazil customers",
+        "native": {
+          "id": "don:core:dvrv-us-1:devo/1mWckJhGyy:ticket/50",
+          "display_id": "TKT-50",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "TKT-124",
+          "path": "crm_json_data/tickets.json"
+        }
+      },
+      {
+        "entity_id": "entity-tkt-125",
+        "kind": "ticket",
+        "label": "Brazil subscriptions not charging on renewal",
+        "native": {
+          "id": "don:core:dvrv-us-1:devo/1mWckJhGyy:ticket/52",
+          "display_id": "TKT-52",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "TKT-125",
+          "path": "crm_json_data/tickets.json"
+        }
+      },
+      {
+        "entity_id": "entity-tkt-126",
+        "kind": "ticket",
+        "label": "Recurring billing broken for Brazil — affecting our recently launched Brazil subscriptions",
+        "native": {
+          "id": "don:core:dvrv-us-1:devo/1mWckJhGyy:ticket/53",
+          "display_id": "TKT-53",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "TKT-126",
+          "path": "crm_json_data/tickets.json"
+        }
+      },
+      {
+        "entity_id": "entity-subscriptions",
+        "kind": "part",
+        "label": "Subscriptions",
+        "native": {
+          "id": "don:core:dvrv-us-1:devo/1mWckJhGyy:capability/4",
+          "display_id": "CAPL-4",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "PART-003",
+          "path": "pm_json_data/maple_parts.json"
+        }
+      },
+      {
+        "entity_id": "entity-acc-001",
+        "kind": "account",
+        "label": "TechFlow Payments Inc",
+        "native": {
+          "id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:account/M45BPUar",
+          "display_id": "ACC-M45BPUar",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "ACC-001",
+          "path": "crm_json_data/accounts.json"
+        }
+      },
+      {
+        "entity_id": "entity-acc-002",
+        "kind": "account",
+        "label": "GlobalCommerce Solutions",
+        "native": {
+          "id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:account/MsYCfcPY",
+          "display_id": "ACC-MsYCfcPY",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "ACC-002",
+          "path": "crm_json_data/accounts.json"
+        }
+      },
+      {
+        "entity_id": "entity-acc-005",
+        "kind": "account",
+        "label": "GlobalMart",
+        "native": {
+          "id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:account/1Cn6pKfOn",
+          "display_id": "ACC-1Cn6pKfOn",
+          "url": null
+        },
+        "source_ref": {
+          "record_id": "ACC-005",
+          "path": "crm_json_data/accounts.json"
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "evidence-iss-031",
+        "entity_id": "entity-iss-031",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "pm_json_data/issues.json",
+          "record_id": "ISS-031",
+          "content_sha256": "15273002fbce3e4f4ce3406c38088308f9fe79bead0d8247951af61a30874343"
+        },
+        "original_event_at": "2026-03-20T16:00:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "The cluster serving South America subscriptions is in a degraded state following a recent infrastructure migration. Recurring billing jobs are failing intermittently, causing subscription renewals to stall for merchants whose end customers are in Brazil.\n\nImmediate action: Reroute South America subscription processing traffic to US-East clusters while the root cause is investigated in parallel.\n\nBackground:\nPost-migration health checks passed but latent instability in the cluster's job scheduler became apparent under production load. The scheduler is dropping renewal jobs silently — no retries are queued, no failure webhooks are emitted. Manual charge API calls succeed, confirming the issue is isolated to the scheduled billing layer, not the payment processing path.\n\nAcceptance Criteria:\n– South America subscription traffic successfully rerouted to US-East clusters with no data loss\n– Subscription renewal jobs resume processing with <2% failure rate\n– All subscriptions that missed their renewal window are automatically retried with no merchant intervention required\n– Webhook delivery resumes for subscription.renewed, invoice.paid, and payment_intent.succeeded\n– No double-billing occurs as a result of the rerouting\n– Root cause documented; post-mortem scheduled",
+          "field_path": "original_record.description",
+          "start": 0,
+          "end": 1280,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-124",
+        "entity_id": "entity-tkt-124",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-124",
+          "content_sha256": "335720bd7dfcadb3c9153ca0d7c276ec414abbd57307fa3040363cba9a7f9575"
+        },
+        "original_event_at": "2026-03-20T17:15:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "We are seeing recurring billing failures for our Brazil-based end customers. Subscriptions are moving to past_due on their renewal date with no charge attempted and no retry queued. Dunning is enabled and payment methods are valid — manual charges via the API succeed on the same customers. Our US and EU subscribers are unaffected. This is causing escalations from our Brazilian clients and real churn risk. Please treat this as highest priority.",
+          "field_path": "original_record.description",
+          "start": 0,
+          "end": 447,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-125",
+        "entity_id": "entity-tkt-125",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-125",
+          "content_sha256": "baa315884bc075e1e61c37f469e9f964600138ba5239fbb508378441bedce1e9"
+        },
+        "original_event_at": "2026-03-21T09:30:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "Recurring subscription billing has completely stopped for our Brazil-region customers. Subscriptions reach their renewal date, move to past_due, and no payment attempt is made — no failure webhooks are firing either. Manual API charges on the same customers succeed. Merchants in all other regions are renewing normally. We have hundreds of affected subscriptions and are already receiving escalations from our own merchants. We need an ETA and confirmation that affected subscriptions will be retried automatically once resolved.",
+          "field_path": "original_record.description",
+          "start": 0,
+          "end": 530,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-126",
+        "entity_id": "entity-tkt-126",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-126",
+          "content_sha256": "48bb804398bb6002b1b826fb2d0a12e7f6e98a5560d2be9cb72822f98373f7b5"
+        },
+        "original_event_at": "2026-03-21T11:00:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "We launched in Brazil earlier this year and have been onboarding Brazilian merchants onto monthly subscription plans. None of these subscriptions are renewing successfully. Subscriptions hit their renewal date, move to past_due, and no charge is attempted — no failure webhooks fire and dunning retries are not being scheduled. Manual charges via the API succeed on the same customers, confirming payment methods are valid. Our US subscriptions are unaffected. We need this resolved urgently and confirmation that affected subscriptions will be retried automatically — we cannot manually re-trigger hundreds of renewals.",
+          "field_path": "original_record.description",
+          "start": 0,
+          "end": 620,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-iss-031-components",
+        "entity_id": "entity-iss-031",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "pm_json_data/issues.json",
+          "record_id": "ISS-031",
+          "content_sha256": "15273002fbce3e4f4ce3406c38088308f9fe79bead0d8247951af61a30874343"
+        },
+        "original_event_at": "2026-03-20T16:00:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "[\"PART-003\"]",
+          "field_path": "original_record.components",
+          "start": 0,
+          "end": 12,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-124-components",
+        "entity_id": "entity-tkt-124",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-124",
+          "content_sha256": "335720bd7dfcadb3c9153ca0d7c276ec414abbd57307fa3040363cba9a7f9575"
+        },
+        "original_event_at": "2026-03-20T17:15:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "[\"PART-003\"]",
+          "field_path": "original_record.components",
+          "start": 0,
+          "end": 12,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-124-account-id",
+        "entity_id": "entity-tkt-124",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-124",
+          "content_sha256": "335720bd7dfcadb3c9153ca0d7c276ec414abbd57307fa3040363cba9a7f9575"
+        },
+        "original_event_at": "2026-03-20T17:15:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "ACC-001",
+          "field_path": "original_record.account_id",
+          "start": 0,
+          "end": 7,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-125-components",
+        "entity_id": "entity-tkt-125",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-125",
+          "content_sha256": "baa315884bc075e1e61c37f469e9f964600138ba5239fbb508378441bedce1e9"
+        },
+        "original_event_at": "2026-03-21T09:30:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "[\"PART-003\"]",
+          "field_path": "original_record.components",
+          "start": 0,
+          "end": 12,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-125-account-id",
+        "entity_id": "entity-tkt-125",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-125",
+          "content_sha256": "baa315884bc075e1e61c37f469e9f964600138ba5239fbb508378441bedce1e9"
+        },
+        "original_event_at": "2026-03-21T09:30:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "ACC-002",
+          "field_path": "original_record.account_id",
+          "start": 0,
+          "end": 7,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-126-components",
+        "entity_id": "entity-tkt-126",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-126",
+          "content_sha256": "48bb804398bb6002b1b826fb2d0a12e7f6e98a5560d2be9cb72822f98373f7b5"
+        },
+        "original_event_at": "2026-03-21T11:00:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "[\"PART-003\"]",
+          "field_path": "original_record.components",
+          "start": 0,
+          "end": 12,
+          "units": "unicode_code_points"
+        }
+      },
+      {
+        "evidence_id": "evidence-tkt-126-account-id",
+        "entity_id": "entity-tkt-126",
+        "source_ref": {
+          "dataset_id": "enterprise-bench/maple-payments",
+          "path": "crm_json_data/tickets.json",
+          "record_id": "TKT-126",
+          "content_sha256": "48bb804398bb6002b1b826fb2d0a12e7f6e98a5560d2be9cb72822f98373f7b5"
+        },
+        "original_event_at": "2026-03-21T11:00:00Z",
+        "retrieved_at": "2026-10-10T22:54:31.185524+00:00",
+        "source_owner": {
+          "person_id": null,
+          "name": null,
+          "resolution": "missing"
+        },
+        "visibility": "internal",
+        "coverage": "native_imported",
+        "excerpt": {
+          "text": "ACC-005",
+          "field_path": "original_record.account_id",
+          "start": 0,
+          "end": 7,
+          "units": "unicode_code_points"
+        }
+      }
+    ],
+    "claims": [
+      {
+        "claim_id": "claim-manual",
+        "kind": "fact",
+        "statement": "The three customer reports say manual charges succeed while Brazil renewals fail.",
+        "evidence_ids": [
+          "evidence-tkt-124",
+          "evidence-tkt-125",
+          "evidence-tkt-126"
+        ]
+      },
+      {
+        "claim_id": "claim-diagnosis",
+        "kind": "fact",
+        "statement": "The existing issue attributes renewal failures to scheduler instability after an infrastructure migration.",
+        "evidence_ids": [
+          "evidence-iss-031"
+        ]
+      },
+      {
+        "claim_id": "claim-safety",
+        "kind": "fact",
+        "statement": "The existing issue requires no double billing as part of recovery.",
+        "evidence_ids": [
+          "evidence-iss-031"
+        ]
+      },
+      {
+        "claim_id": "claim-context",
+        "kind": "inference",
+        "statement": "Shared subscription context and matching symptoms support a coordinated investigation; they do not independently prove runtime causality.",
+        "evidence_ids": [
+          "evidence-iss-031",
+          "evidence-tkt-124",
+          "evidence-tkt-125",
+          "evidence-tkt-126",
+          "evidence-iss-031-components",
+          "evidence-tkt-124-components",
+          "evidence-tkt-125-components",
+          "evidence-tkt-126-components"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "relationship_id": "relation-part-iss-031",
+        "from_entity_id": "entity-iss-031",
+        "to_entity_id": "entity-subscriptions",
+        "kind": "applies_to_part",
+        "basis": "source_record",
+        "statement": "The source record lists subscription part PART-003.",
+        "evidence_ids": [
+          "evidence-iss-031-components"
+        ]
+      },
+      {
+        "relationship_id": "relation-part-tkt-124",
+        "from_entity_id": "entity-tkt-124",
+        "to_entity_id": "entity-subscriptions",
+        "kind": "applies_to_part",
+        "basis": "source_record",
+        "statement": "The source record lists subscription part PART-003.",
+        "evidence_ids": [
+          "evidence-tkt-124-components"
+        ]
+      },
+      {
+        "relationship_id": "relation-part-tkt-125",
+        "from_entity_id": "entity-tkt-125",
+        "to_entity_id": "entity-subscriptions",
+        "kind": "applies_to_part",
+        "basis": "source_record",
+        "statement": "The source record lists subscription part PART-003.",
+        "evidence_ids": [
+          "evidence-tkt-125-components"
+        ]
+      },
+      {
+        "relationship_id": "relation-part-tkt-126",
+        "from_entity_id": "entity-tkt-126",
+        "to_entity_id": "entity-subscriptions",
+        "kind": "applies_to_part",
+        "basis": "source_record",
+        "statement": "The source record lists subscription part PART-003.",
+        "evidence_ids": [
+          "evidence-tkt-126-components"
+        ]
+      },
+      {
+        "relationship_id": "relation-account-tkt-124",
+        "from_entity_id": "entity-tkt-124",
+        "to_entity_id": "entity-acc-001",
+        "kind": "reported_by_account",
+        "basis": "source_record",
+        "statement": "The source ticket belongs to this account.",
+        "evidence_ids": [
+          "evidence-tkt-124-account-id"
+        ]
+      },
+      {
+        "relationship_id": "relation-account-tkt-125",
+        "from_entity_id": "entity-tkt-125",
+        "to_entity_id": "entity-acc-002",
+        "kind": "reported_by_account",
+        "basis": "source_record",
+        "statement": "The source ticket belongs to this account.",
+        "evidence_ids": [
+          "evidence-tkt-125-account-id"
+        ]
+      },
+      {
+        "relationship_id": "relation-account-tkt-126",
+        "from_entity_id": "entity-tkt-126",
+        "to_entity_id": "entity-acc-005",
+        "kind": "reported_by_account",
+        "basis": "source_record",
+        "statement": "The source ticket belongs to this account.",
+        "evidence_ids": [
+          "evidence-tkt-126-account-id"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "gap_id": "gap-live-queue",
+        "question": "Is replay safe in the current runtime?",
+        "why_it_matters": "The benchmark supplies no running queue or duplicate-charge test results.",
+        "blocks": "production_change",
+        "next_step": "Create investigation checks; obtain permitted runtime evidence before a production change."
+      }
+    ],
+    "coverage": {
+      "dataset_id": "enterprise-bench/maple-payments",
+      "archive_sha256": "24d6d134067ffc763c953fab8ec28022c98bb4da11aa0e4456798d7f9bb656bc",
+      "retrieval_scope": "imported_only",
+      "limitations": [
+        "Example uses a static verified snapshot, not a live MCP run",
+        "Native owner and dates reflect import; use original metadata",
+        "Historical source owners have not been resolved in this example",
+        "Remaining closed ticket/deal backlogs are not native imported"
+      ]
+    }
+  },
+  "action_graph": {
+    "plan_id": "00000000-0000-4000-8000-000000000003",
+    "revision": 1,
+    "plan_digest": "24701c5122a004151dd0728f125e5549e1496ae5607f8a334a0e7f1b124750c0",
+    "expires_at": "2026-10-11T22:54:31Z",
+    "existing_work_entity_ids": [
+      "entity-iss-031"
+    ],
+    "actions": [
+      {
+        "action_id": "task-scheduler",
+        "action_key": "ripple/maple/ISS-031/scheduler-check",
+        "operation": "create_ticket",
+        "visibility": "internal",
+        "title": "Verify Brazil renewal scheduler and retry behavior",
+        "body_markdown": "Investigate missing renewal attempts, retry jobs, and failure webhooks using ISS-42 and the three cited customer reports.\n\nAcceptance checks:\n- Record queue observations or state that runtime access is unavailable\n- Distinguish scheduled renewal failure from manual charge behavior\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)",
+        "part_entity_id": "entity-subscriptions",
+        "owner_id": null,
+        "context_entity_ids": [
+          "entity-iss-031"
+        ],
+        "evidence_ids": [
+          "evidence-iss-031",
+          "evidence-tkt-124",
+          "evidence-tkt-125",
+          "evidence-tkt-126"
+        ],
+        "acceptance_checks": [
+          "Record queue observations or state that runtime access is unavailable",
+          "Distinguish scheduled renewal failure from manual charge behavior"
+        ]
+      },
+      {
+        "action_id": "task-replay",
+        "action_key": "ripple/maple/ISS-031/replay-safety",
+        "operation": "create_ticket",
+        "visibility": "internal",
+        "title": "Validate rerouting and missed-renewal replay safety",
+        "body_markdown": "Review the US-East routing proposal in ISS-42. Use scheduler findings to define idempotency, no-double-billing, and webhook checks before any production change.\n\nAcceptance checks:\n- Define a no-double-billing test\n- Define replay and webhook checks; do not claim that they passed\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)",
+        "part_entity_id": "entity-subscriptions",
+        "owner_id": null,
+        "context_entity_ids": [
+          "entity-iss-031"
+        ],
+        "evidence_ids": [
+          "evidence-iss-031"
+        ],
+        "acceptance_checks": [
+          "Define a no-double-billing test",
+          "Define replay and webhook checks; do not claim that they passed"
+        ]
+      },
+      {
+        "action_id": "task-customer-drafts",
+        "action_key": "ripple/maple/ISS-031/customer-update-drafts",
+        "operation": "create_ticket",
+        "visibility": "internal",
+        "title": "Prepare cited Brazil renewal updates for affected accounts",
+        "body_markdown": "Prepare drafts for TechFlow, GlobalCommerce, and GlobalMart. Include confirmed symptoms, remaining gaps, and the next investigation step. Do not send messages.\n\nAcceptance checks:\n- Link each draft to its customer report\n- Keep unverified ETAs and recovery claims out of the drafts\n\nEvidence:\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)",
+        "part_entity_id": "entity-subscriptions",
+        "owner_id": null,
+        "context_entity_ids": [
+          "entity-iss-031",
+          "entity-acc-001",
+          "entity-acc-002",
+          "entity-acc-005"
+        ],
+        "evidence_ids": [
+          "evidence-tkt-124",
+          "evidence-tkt-125",
+          "evidence-tkt-126"
+        ],
+        "acceptance_checks": [
+          "Link each draft to its customer report",
+          "Keep unverified ETAs and recovery claims out of the drafts"
+        ]
+      }
+    ],
+    "dependencies": [
+      {
+        "prerequisite_action_id": "task-scheduler",
+        "dependent_action_id": "task-replay",
+        "reason": "Use scheduler findings when defining replay safety checks."
+      }
+    ]
+  }
+}

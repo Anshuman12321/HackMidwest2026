@@ -5,7 +5,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "request_id": {
         "type": "string",
@@ -123,7 +123,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "request_id": {
         "type": "string",
@@ -722,7 +722,11 @@
                     },
                     "operation": {
                       "type": "string",
-                      "const": "create_issue"
+                      "const": "create_ticket"
+                    },
+                    "visibility": {
+                      "type": "string",
+                      "const": "internal"
                     },
                     "title": {
                       "type": "string",
@@ -733,15 +737,6 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 4000
-                    },
-                    "priority": {
-                      "type": "string",
-                      "enum": [
-                        "p0",
-                        "p1",
-                        "p2",
-                        "p3"
-                      ]
                     },
                     "part_entity_id": {
                       "type": "string",
@@ -791,9 +786,9 @@
                     "action_id",
                     "action_key",
                     "operation",
+                    "visibility",
                     "title",
                     "body_markdown",
-                    "priority",
                     "part_entity_id",
                     "owner_id",
                     "context_entity_ids",
@@ -869,7 +864,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "plan_id": {
         "type": "string",
@@ -882,7 +877,7 @@
         "maximum": 9007199254740991
       },
       "owner_assignments": {
-        "minItems": 1,
+        "default": [],
         "maxItems": 8,
         "type": "array",
         "items": {
@@ -904,6 +899,33 @@
           ],
           "additionalProperties": false
         }
+      },
+      "content_edits": {
+        "maxItems": 8,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action_id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,79}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "body_markdown": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
+          },
+          "required": [
+            "action_id"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     "required": [
@@ -920,7 +942,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "plan_id": {
         "type": "string",
@@ -965,7 +987,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "investigation_id": {
         "type": "string",
@@ -1235,7 +1257,7 @@
     "properties": {
       "schema_version": {
         "type": "string",
-        "const": "1.0"
+        "const": "2.0"
       },
       "operation": {
         "type": "string",

@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "investigation_id": "00000000-0000-4000-8000-000000000002",
   "plan_id": "00000000-0000-4000-8000-000000000003",
   "revision": 2,
-  "plan_digest": "31d9333f3639d2b6d6534902dc6a8bd4eba1400d8c6d00983655d85056b82946",
+  "plan_digest": "d59afe2bbe4ee582ad3290eaa4faf46b63d3b53d4912bc60f13b63f7028a24a6",
   "idempotency_key": "00000000-0000-4000-8000-000000000005",
   "approval": null,
   "status": "rejected",

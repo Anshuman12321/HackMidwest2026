@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple · DevRev</title>
+<style>
+  :root{
+    --white:#FFFFFF; --grey:#F5F5F5; --grey2:#FAFAFA; --dark:#161616; --yellow:#FFE600;
+    --line:#E8E8E8; --line2:#F0F0F0; --mut:#767676; --mut2:#9E9E9E;
+    --green:#128A4B; --greenbg:#E4F5EB; --red:#C8341F; --redbg:#FBE3DF;
+    --amber:#B6820A; --amberbg:#FBF2D8; --blue:#2456C8; --bluebg:#E6ECFA; --purple:#7A3D9E;
+    --nav:#0E0E0E; --navline:#222;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{font-family:'Chip Text',system-ui,sans-serif; background:#0E0E0E; color:var(--dark); -webkit-font-smoothing:antialiased; overflow:hidden;}
+  h1,h2,h3,h4{font-family:'Chip Display',system-ui,sans-serif; letter-spacing:-0.012em;}
+  .mono{font-family:'Chip Mono',ui-monospace,monospace; text-transform:uppercase; letter-spacing:0.05em;}
+  button{font-family:'Chip Text',system-ui,sans-serif;}
+  ::selection{background:var(--yellow);}
+
+  .app{display:grid; grid-template-columns:234px minmax(0,1fr) 468px; height:100vh;}
+
+  /* ============ LEFT NAV ============ */
+  .nav{background:var(--nav); color:#BDBDBD; padding:14px 12px; display:flex; flex-direction:column; border-right:1px solid var(--navline); overflow:hidden;}
+  .nav .wm{display:flex; align-items:center; gap:9px; padding:6px 8px 4px;}
+  .nav .wm svg{height:15px;} .nav .wm svg path{fill:#fff;}
+  .orgsel{display:flex; align-items:center; gap:9px; margin:10px 4px 6px; padding:8px 10px; border:1px solid var(--navline); border-radius:9px; cursor:pointer; transition:background .12s;}
+  .orgsel:hover{background:#1A1A1A;}
+  .orgsel .sq{width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#FFE600,#FFC400); color:#161616; font-weight:800; font-family:'Chip Display'; font-size:12px; display:flex; align-items:center; justify-content:center;}
+  .orgsel .nm{font-size:12.5px; color:#fff; font-weight:600;} .orgsel .sub{font-size:10px; color:var(--mut2);}
+  .orgsel .cx{margin-left:auto; color:var(--mut2); font-size:11px;}
+  .navscroll{overflow-y:auto; flex:1; margin-top:6px;} .navscroll::-webkit-scrollbar{width:0;}
+  .grp{font-size:10px; color:#5E5E5E; padding:14px 10px 6px; letter-spacing:.08em;}
+  .nav a{display:flex; align-items:center; gap:10px; font-size:12.5px; color:#BDBDBD; text-decoration:none; padding:7px 10px; border-radius:8px; position:relative; transition:background .12s;}
+  .nav a:hover{background:#1B1B1B; color:#fff;}
+  .nav a.on{background:#242424; color:#fff;}
+  .nav a .ct{margin-left:auto; font-size:10px; color:var(--mut2); background:#242424; border-radius:9999px; padding:1px 7px;}
+  .nav a.on .ct{background:#000;}
+  .ic{width:16px; height:16px; display:inline-flex; opacity:.9;}
+  .ic svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.7;}
+  .nav a.pin .dotp{position:absolute; left:3px; top:50%; transform:translateY(-50%); width:3px; height:3px; border-radius:50%; background:var(--yellow);}
+  .navfoot{border-top:1px solid var(--navline); display:flex; align-items:center; gap:9px; padding:12px 8px 2px; margin-top:6px;}
+  .navfoot .av{width:26px; height:26px; border-radius:50%; background:#2A2A2A; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;}
+  .navfoot .nm{font-size:12px; color:#fff;} .navfoot .rl{font-size:10px; color:var(--mut2);}
+
+  /* ============ CENTER RECORD ============ */
+  .main{background:var(--white); overflow-y:auto; display:flex; flex-direction:column;}
+  .maintop{position:sticky; top:0; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); z-index:5; display:flex; align-items:center; justify-content:space-between; padding:12px 22px; border-bottom:1px solid var(--line);}
+  .crumb{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--mut);}
+  .crumb .mono{font-size:11px; color:var(--dark); background:var(--grey); padding:2px 8px; border-radius:6px;}
+  .maintop .acts{display:flex; gap:8px;}
+  .iconbtn{width:30px; height:30px; border:1px solid var(--line); border-radius:8px; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--mut); transition:background .12s;}
+  .iconbtn:hover{background:var(--grey);}
+  .iconbtn svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.7;}
+
+  .rechead{padding:22px 26px 14px;}
+  .idrow{display:flex; align-items:center; gap:9px; margin-bottom:12px; flex-wrap:wrap;}
+  .idrow .mono{font-size:12px; color:var(--mut);}
+  .rechead h1{font-size:25px; line-height:1.14; max-width:640px;}
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 10px; border-radius:9999px; line-height:1.4;}
+  .chip-g{background:var(--greenbg); color:var(--green);} .chip-a{background:var(--amberbg); color:var(--amber);}
+  .chip-r{background:var(--redbg); color:var(--red);} .chip-d{background:var(--grey); color:#444; border:1px solid var(--line);}
+  .chip-b{background:var(--bluebg); color:var(--blue);} .chip-dk{background:var(--dark); color:#fff;}
+  .chip .d{width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+  .props{display:grid; grid-template-columns:repeat(5,1fr); gap:2px 20px; margin:0 26px; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .props .p .k{font-size:11px; color:var(--mut); margin-bottom:5px;}
+  .props .p .v{font-size:13px; font-weight:600; display:flex; align-items:center; gap:7px;}
+  .av-s{width:19px; height:19px; border-radius:50%; background:var(--grey); border:1px solid var(--line); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; color:#444;}
+
+  .tabsbar{display:flex; gap:3px; padding:10px 26px 0; border-bottom:1px solid var(--line);}
+  .rtab{font-size:12.5px; font-weight:600; color:var(--mut); background:none; border:none; padding:9px 12px; cursor:pointer; border-bottom:2px solid transparent;}
+  .rtab.on{color:var(--dark); border-bottom-color:var(--dark);}
+
+  .proplist{max-width:600px; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .prow{display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line2); font-size:13.5px;}
+  .prow:last-child{border-bottom:none;} .prow:nth-child(even){background:var(--grey2);}
+  .prow .pk{width:140px; color:var(--mut); font-size:12.5px;} .prow .pv{font-weight:600; display:flex; align-items:center; gap:8px;}
+  .tl{padding:20px 26px 48px; flex:1;}
+  .tlsec{font-size:11px; color:var(--mut); margin-bottom:16px; display:flex; align-items:center; gap:8px;}
+  .tlsec::after{content:""; flex:1; height:1px; background:var(--line);}
+  .tlitem{display:grid; grid-template-columns:32px 1fr; gap:13px; margin-bottom:20px; animation:fade .4s ease both;}
+  .tlitem .av{width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#444; background:var(--grey); border:1px solid var(--line);}
+  .tlitem .av.rip{background:var(--yellow); color:#161616; border-color:#E6CF00;}
+  .tlitem .av.a1{background:#E6ECFA; color:#2456C8; border-color:#CDDBF5;}
+  .tlitem .av.a2{background:#F3E8FA; color:#7A3D9E; border-color:#E6D4F2;}
+  .tlbody .who{font-size:12.5px; margin-bottom:5px;} .tlbody .who b{font-weight:600;} .tlbody .who span{color:var(--mut);}
+  .tlbody .msg{font-size:13px; color:#2E2E2E; line-height:1.55;}
+  .ripcard{border:1px solid #EDE2A8; background:linear-gradient(180deg,#FFFDF2,#FFFFFF); border-radius:12px; padding:13px 15px; margin-top:4px;}
+  .ripcard .rh{display:flex; align-items:center; gap:8px; margin-bottom:7px;}
+  .ripcard .rh .tg{font-size:10px; font-weight:700; color:var(--amber);}
+  .ripcard .st{display:flex; gap:16px; margin-top:11px; padding-top:11px; border-top:1px solid #F0E8C4;}
+  .ripcard .st .n{font-family:'Chip Display'; font-size:19px; font-weight:700;} .ripcard .st .l{font-size:10px; color:var(--mut);}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);}to{opacity:1; transform:none;}}
+
+  /* ============ RIGHT: RIPPLE SNAP-IN ============ */
+  .panel{background:#F6F6F6; border-left:1px solid var(--line); display:flex; flex-direction:column; overflow:hidden;}
+  .ph{background:var(--dark); color:#fff; flex-shrink:0;}
+  .ph .top{display:flex; align-items:center; justify-content:space-between; padding:13px 16px;}
+  .ph .l{display:flex; align-items:center; gap:10px;}
+  .ph .badge{width:26px; height:26px; border-radius:7px; background:var(--yellow); color:#161616; font-family:'Chip Display'; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;}
+  .ph .ttl{font-size:14.5px; font-weight:700; font-family:'Chip Display'; display:flex; align-items:center; gap:7px;}
+  .ph .live{font-size:9px; background:#1E1E1E; color:#7FE0A6; padding:2px 7px; border-radius:9999px; display:inline-flex; align-items:center; gap:5px;}
+  .ph .live i{width:5px; height:5px; border-radius:50%; background:#2EC27A; display:inline-block; animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .ph .sub{font-size:10.5px; color:#9A9A9A; margin-top:1px;}
+  .ph .mini{display:flex; gap:4px; padding:0 14px 10px;}
+  .ph .mstep{flex:1; text-align:center; font-size:9px; color:#6E6E6E; padding:7px 0; border-radius:7px; background:#1C1C1C; transition:all .3s;}
+  .ph .mstep.done{color:#CFCFCF; background:#2A2A2A;}
+  .ph .mstep.now{color:#161616; background:var(--yellow); font-weight:700;}
+
+  .pbody{overflow-y:auto; padding:13px; display:flex; flex-direction:column; gap:12px; flex:1;}
+  .pbody::-webkit-scrollbar{width:7px;} .pbody::-webkit-scrollbar-thumb{background:#D8D8D8; border-radius:9999px;}
+
+  .snap{background:#fff; border:1px solid var(--line); border-radius:13px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.03); animation:fade .4s ease both;}
+  .snap .sh{display:flex; align-items:center; justify-content:space-between; padding:12px 14px 0;}
+  .snap .eyebrow{font-size:10px; color:var(--mut); display:flex; align-items:center; gap:6px;}
+  .snap .eyebrow .sqi{width:15px; height:15px; border-radius:4px; background:var(--grey); display:inline-flex; align-items:center; justify-content:center;}
+  .snap .eyebrow .sqi svg{width:9px; height:9px; stroke:#444; fill:none; stroke-width:2;}
+  .snap .pad{padding:11px 14px 13px;}
+  .snap h3{font-size:15px; margin:3px 0 2px;} .snap h4{font-size:12.5px; margin-bottom:3px;}
+  .snap p{font-size:12px; color:#3A3A3A; line-height:1.5;}
+  .snap .foot{border-top:1px solid var(--line2); padding:10px 14px; display:flex; gap:8px; align-items:center; background:#FCFCFC; flex-wrap:wrap;}
+  .collapsed .pad, .collapsed .foot{display:none;}
+  .chev{transition:transform .2s; color:var(--mut); cursor:pointer;} .collapsed .chev{transform:rotate(-90deg);}
+
+  .pill{border-radius:9999px; border:none; cursor:pointer; font-weight:600; font-size:12px; padding:8px 15px; transition:transform .08s, box-shadow .15s, background .12s;}
+  .pill:active{transform:translateY(1px);}
+  .pill-y{background:var(--yellow); color:#161616;} .pill-y:hover{box-shadow:0 2px 12px rgba(255,230,0,.45);}
+  .pill-dk{background:var(--dark); color:#fff;} .pill-dk:hover{box-shadow:0 2px 12px rgba(0,0,0,.25);}
+  .pill-gh{background:#fff; color:var(--dark); border:1px solid var(--line);} .pill-gh:hover{background:var(--grey);}
+  .pill-sm{font-size:11px; padding:6px 12px;}
+  .pill[disabled]{opacity:.4; cursor:not-allowed;}
+  .pill.full{width:100%; justify-content:center; display:flex; align-items:center; gap:7px;}
+
+  .ev{border:1px solid var(--line); border-left:3px solid var(--dark); border-radius:9px; padding:9px 11px; margin-top:8px; cursor:pointer; transition:background .12s, box-shadow .12s;}
+  .ev:hover{background:var(--grey2); box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .ev.hi{border-left-color:var(--red);} .ev.active{background:#FFFCE8; border-color:#E6CF00;}
+  .ev .id{font-size:10px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .ev .id .ty{font-size:8px; color:#fff; background:var(--dark); padding:1px 5px; border-radius:4px; font-weight:600;}
+  .ev p{font-size:11.5px; color:#4A4A4A; margin-top:4px; line-height:1.45;}
+
+  .kv{display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--line2); font-size:12px;}
+  .kv:last-child{border-bottom:none;} .kv .k{color:var(--mut);} .kv .v{font-weight:600; display:flex; align-items:center; gap:6px;}
+
+  .conf{height:7px; border-radius:9999px; background:var(--line); overflow:hidden; margin:9px 0 6px;}
+  .conf > i{display:block; height:100%; width:58%; background:linear-gradient(90deg,#D9A400,#FFD233); transition:width .7s cubic-bezier(.2,.8,.2,1), background .5s;}
+
+  .rationale{background:var(--grey); border-radius:9px; padding:10px 12px; font-size:11.5px; color:#2E2E2E; line-height:1.5;}
+  .warn{background:var(--amberbg); border:1px solid #EBD98F; border-radius:9px; padding:9px 11px; font-size:11px; color:#7A5E00; display:flex; gap:8px; align-items:flex-start;}
+  .warn svg{width:14px; height:14px; stroke:#B6820A; fill:none; stroke-width:2; flex-shrink:0; margin-top:1px;}
+  .warn.resolved{background:var(--greenbg); border-color:#A9DEC0; color:#0B6B3A;} .warn.resolved svg{stroke:#0B6B3A;}
+
+  .task{display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:start; padding:11px 0; border-bottom:1px solid var(--line2); transition:opacity .25s;}
+  .task:last-child{border-bottom:none;}
+  .task.rejected{opacity:.4;} .task.rejected h4{text-decoration:line-through;}
+  .task .num{width:22px; height:22px; border-radius:7px; background:var(--dark); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:'Chip Display';}
+  .task.approved .num{background:var(--green);}
+  .task h4{font-size:12.5px; margin-bottom:4px; line-height:1.25;}
+  .task .m{font-size:10.5px; color:var(--mut); line-height:1.6;} .task .m b{color:#333; font-weight:600;}
+  .task .deps{display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;}
+  .task .dep{display:inline-flex; align-items:center; gap:4px; font-size:9.5px; color:var(--mut); background:var(--grey); padding:1px 6px; border-radius:5px;}
+  .task .tact{display:flex; gap:4px;}
+  .tbtn{width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--mut);}
+  .tbtn svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.2;}
+  .tbtn.yes.on{background:var(--greenbg); border-color:#A9DEC0; color:var(--green);}
+  .tbtn.no.on{background:var(--redbg); border-color:#E8B6AC; color:var(--red);}
+
+  .deeplink{border:1px dashed var(--line); border-radius:11px; padding:11px 13px; font-size:11.5px; color:var(--mut); display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fff;}
+  .deeplink b{color:var(--dark);}
+
+  /* intake overlay (run analysis) */
+  .runbar{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:11px; padding:10px 12px; font-size:12px;}
+  .spin{width:16px; height:16px; border:2px solid var(--line); border-top-color:var(--dark); border-radius:50%; animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ============ FULL-SCREEN GRAPH OVERLAY ============ */
+  .overlay{position:fixed; inset:0; background:rgba(10,10,10,.6); backdrop-filter:blur(5px); z-index:100; display:none; align-items:center; justify-content:center; padding:34px;}
+  .overlay.show{display:flex; animation:fade .2s ease;}
+  .modal{background:#fff; border-radius:18px; width:min(1060px,96vw); height:min(690px,92vh); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 90px rgba(0,0,0,.5);}
+  .modalhead{display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--line);}
+  .modalhead .eyebrow{font-size:10px; color:var(--mut);} .modalhead h2{font-size:21px; margin-top:3px;}
+  .mhtools{display:flex; align-items:center; gap:8px;}
+  .modalbody{flex:1; display:grid; grid-template-columns:1fr 284px; overflow:hidden;}
+  .canvas{position:relative; background:radial-gradient(circle at 1px 1px, #E8E8E8 1px, transparent 0) 0 0/24px 24px, #FBFBFB; overflow:hidden;}
+  .canvas svg{width:100%; height:100%; display:block;}
+  .side{border-left:1px solid var(--line); padding:18px; overflow-y:auto; background:#FCFCFC;}
+  .side .lg{font-size:10px; color:var(--mut); margin:16px 0 8px;} .side .lg:first-child{margin-top:0;}
+  .legend2{display:flex; flex-direction:column; gap:7px; font-size:11.5px;}
+  .legend2 span{display:inline-flex; align-items:center; gap:8px; color:#333; cursor:pointer; padding:3px 6px; border-radius:6px;} .legend2 span:hover{background:var(--grey);}
+  .legend2 i{width:11px; height:11px; border-radius:3px;}
+  .detailbox{border:1px solid var(--line); border-radius:11px; padding:13px; margin-bottom:12px; animation:fade .25s;}
+  .detailbox .t{font-size:13px; font-weight:700; font-family:'Chip Display'; margin-bottom:5px; display:flex; align-items:center; gap:7px;}
+  .detailbox p{font-size:11.5px; color:#4A4A4A; line-height:1.5;}
+  .detailbox .lk{margin-top:9px; font-size:10.5px;} .detailbox .lk a{color:var(--blue); text-decoration:none; font-weight:600;}
+  .node{cursor:pointer;} .node circle{transition:stroke-width .12s;} .node:hover circle{stroke:#161616; stroke-width:2.5;}
+  .node.sel circle{stroke:#161616; stroke-width:3.5;}
+  .node.dim{opacity:.22;}
+  .closeX{width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:16px; color:var(--mut);}
+  .zbtn{width:28px; height:28px; border-radius:7px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:15px; color:var(--dark); display:flex; align-items:center; justify-content:center;}
+
+  /* toast */
+  .toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(140%); background:var(--dark); color:#fff; padding:12px 18px; border-radius:11px; font-size:13px; display:flex; align-items:center; gap:10px; z-index:200; transition:transform .34s cubic-bezier(.2,.8,.2,1); box-shadow:0 12px 40px rgba(0,0,0,.4);}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast .ok{width:20px; height:20px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== LEFT NAV ===== -->
+  <aside class="nav">
+    <div class="wm">
+      <svg viewBox="0 0 293 53" xmlns="http://www.w3.org/2000/svg" aria-label="DevRev">
+        <path d="M280.914 41.9213H274.482V8.44531H280.914V18.4285C282.241 11.3126 285.129 8.44531 290.822 8.44531H293V15.4772H289.89C283.513 15.4772 280.914 18.0171 280.914 24.2387V41.9213Z"/>
+        <path d="M225.863 42.9763C223.542 42.9763 221.569 42.3088 219.982 40.9822C218.084 39.3953 216.8 36.8596 216.258 33.6397L213.256 15.7724L208.353 16.5952L207.421 11.0579L210.288 10.5751C210.83 10.4827 211.308 10.1847 211.627 9.73968C211.946 9.29048 212.072 8.74472 211.98 8.20316L210.784 1.07472L217.173 0L217.962 4.68512C218.29 6.64565 217.4 7.99745 216.598 8.7867C216.166 9.21071 215.716 9.51718 215.372 9.72289L229.302 7.38452L230.234 12.9219L219.65 14.7019L222.509 31.7169C222.824 33.6019 223.428 34.8865 224.348 35.6464C225.313 36.444 226.653 36.6833 228.445 36.3811C230.28 36.0746 231.737 35.4323 233.319 34.6892L233.428 34.6388L235.229 40.3903L235.15 40.4323C232.853 41.5952 231.149 42.2794 228.206 42.7706C227.391 42.9091 226.615 42.9763 225.872 42.9763H225.863Z"/>
+        <path d="M143.132 52.6199H136.646V8.4471H143.132V17.9475C144.727 10.9576 148.963 7.41016 155.718 7.41016C164.584 7.41016 169.668 13.8627 169.668 25.1095C169.668 36.3563 164.479 43.0272 155.789 43.0272C148.849 43.0272 144.588 39.4461 143.132 32.3807V52.6199ZM153.409 13.3211C146.973 13.3211 143.132 17.6494 143.132 24.8954V25.3992C143.132 32.5612 147.166 37.1917 153.409 37.1917C159.651 37.1917 163.253 32.9013 163.253 25.1095C163.253 17.3178 159.941 13.3169 153.409 13.3169V13.3211Z"/>
+        <path d="M130.932 41.9257H124.5V21.9257C124.5 18.6806 123.472 13.2356 116.595 13.2356C110.928 13.2356 107.544 16.485 107.544 21.9257V41.9257H101.112V21.9257C101.112 18.6806 100.084 13.2356 93.2073 13.2356C87.5399 13.2356 84.1562 16.485 84.1562 21.9257V41.9257H77.7246V8.45392H84.1562V16.7284C85.6465 10.6034 89.6557 7.375 95.7808 7.375C102.565 7.375 106.57 10.935 107.372 17.673C108.552 10.7419 112.363 7.375 119.022 7.375C124.454 7.375 130.928 9.6252 130.928 20.3514V41.9257H130.932Z"/>
+        <path d="M58.2197 42.9328C55.7134 43.2519 52.9846 42.979 50.1172 42.068C45.1257 40.4853 41.4775 37.5928 39.5673 33.7053C37.674 29.8431 37.5312 25.0908 39.1559 19.9565C40.768 14.8683 43.6731 11.111 47.5648 9.08328C51.3767 7.09756 55.9485 6.85827 60.7847 8.39059C70.621 11.5056 74.8947 20.0866 71.6747 30.2545C69.3153 37.702 64.4413 42.1394 58.2197 42.9328ZM53.9879 13.4997C50.0081 14.0035 46.8637 16.9254 45.3104 21.8288C43.0602 28.9405 45.4993 34.3813 51.8427 36.3922C54.9787 37.3871 57.909 37.131 60.3187 35.6533C62.6697 34.2133 64.4833 31.6525 65.5664 28.2436C67.7159 21.451 65.176 16.0018 58.9292 14.0245C57.1869 13.4745 55.5287 13.3066 53.9921 13.5039L53.9879 13.4997Z"/>
+        <path d="M181.515 29.8091H175.81L174.672 8.45312H182.01L181.519 29.8091H181.515Z"/>
+        <path d="M195.256 8.45312H202.594L201.457 29.8091H195.751L195.26 8.45312H195.256Z"/>
+        <path d="M26.931 29.8029C25.7472 33.4637 23.6103 37.0447 17.5188 37.0447C14.2275 37.0447 11.4861 35.97 9.58853 33.9381C7.66158 31.8768 6.64563 28.8667 6.64563 25.2353C6.64563 21.3815 7.64479 18.3798 9.61372 16.3059C11.4525 14.3706 14.1099 13.3504 17.3005 13.3504C22.3719 13.3504 25.554 15.8063 27.0276 20.8525L27.0486 20.9281H33.6061L33.5851 20.8021C31.9604 11.7551 26.6581 7.35547 17.3719 7.35547C6.82195 7.35547 0 14.3454 0 25.1598C0 30.6803 1.66665 35.2479 4.81525 38.3713C7.89248 41.4234 12.3089 43.0354 17.586 43.0354C26.444 43.0354 31.8051 38.5644 33.5431 29.8029H26.9226H26.931Z"/>
+        <path d="M253.525 7.32031C248.387 7.32031 244.058 8.98697 240.998 12.1356C237.883 15.343 236.237 19.9567 236.237 25.4773C236.237 36.3211 242.891 43.0549 253.601 43.0549C261.615 43.0549 266.972 39.3059 268.932 32.316H262.463C260.868 35.6955 257.971 37.3328 253.601 37.3328C247.266 37.3328 243.45 33.7392 242.841 27.2825H268.995L269.004 27.2279C269.113 25.578 269.151 24.3144 269.151 23.1599C269.151 13.3908 263.164 7.32031 253.529 7.32031H253.525ZM253.307 12.971C259.252 12.971 262.522 15.9853 263.038 21.997H242.942C243.853 16.0692 247.43 12.971 253.307 12.971Z"/>
+      </svg>
+    </div>
+    <div class="orgsel" onclick="toast('Only Northwind dev org in this demo')"><div class="sq">N</div><div><div class="nm">Northwind</div><div class="sub">dev org</div></div><div class="cx">⌄</div></div>
+    <div class="navscroll">
+      <a href="#"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span> Inbox <span class="ct">7</span></a>
+      <a href="#"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 10h16"/></svg></span> My work</a>
+      <a href="#" data-view="inbox" onclick="go('inbox',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span> Inbox <span class="ct">7</span></a>
+      <a href="#" data-view="mywork" onclick="go('mywork',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 10h16"/></svg></span> My work</a>
+      <a href="#" onclick="openPalette();return false;"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span> Search <span class="ct">⌘K</span></a>
+      <div class="grp mono">Build</div>
+      <a href="#" class="on" data-view="tickets" onclick="go('tickets',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span> Tickets <span class="ct">24</span></a>
+      <a href="#" data-view="issues" onclick="go('issues',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span> Issues <span class="ct">61</span></a>
+      <a href="#" data-view="parts" onclick="go('parts',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span> Parts</a>
+      <a href="#" data-view="code" onclick="go('code',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/></svg></span> Code changes</a>
+      <div class="grp mono">Snap-ins</div>
+      <a href="#" class="pin" data-view="ripple" onclick="go('ripple',this);return false;"><span class="dotp"></span><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></span> Ripple</a>
+      <a href="#" data-view="market" onclick="go('market',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></span> Marketplace</a>
+      <div class="grp mono">Insights</div>
+      <a href="#" data-view="dash" onclick="go('dash',this);return false;"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span> Dashboards</a>
+    </div>
+    <div class="navfoot" style="cursor:pointer;" onclick="toast('Signed in as Ansh · Platform eng')"><div class="av">AN</div><div><div class="nm">Ansh</div><div class="rl">Platform eng</div></div></div>
+  </aside>
+
+  <!-- ===== CENTER ===== -->
+  <main class="main">
+
+    <!-- GENERIC LIST / HOME VIEWS -->
+    <div id="view-list" style="display:none;">
+      <div class="maintop"><div class="crumb" id="listCrumb">Tickets</div>
+        <div class="acts"><div class="iconbtn" title="Search" onclick="openPalette()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></div></div>
+      </div>
+      <div style="padding:22px 26px;" id="listBody"></div>
+    </div>
+
+    <!-- RECORD VIEW -->
+    <div id="view-record">
+    <div class="maintop">
+      <div class="crumb"><a href="#" onclick="go('tickets',document.querySelector('[data-view=tickets]'));return false;" style="color:var(--mut);text-decoration:none;">Tickets</a> <span>›</span> <span class="mono">TKT-4821</span></div>
+      <div class="acts">
+        <div class="iconbtn" title="Run Ripple (/ripple)" onclick="openPalette()"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg></div>
+        <div class="iconbtn" title="More" onclick="toast('No other actions in this demo')"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></div>
+      </div>
+    </div>
+    <div class="rechead">
+      <div class="idrow"><span class="mono">TKT-4821</span><span class="chip chip-r"><i class="d"></i>P1</span><span class="chip chip-d">Open</span><span class="chip chip-b">Payments</span></div>
+      <h1>Payment API latency elevated — enterprise checkout failing</h1>
+    </div>
+    <div class="props">
+      <div class="p"><div class="k">Owner</div><div class="v"><span class="av-s">MR</span>M. Rao</div></div>
+      <div class="p"><div class="k">Account</div><div class="v">Northwind Corp</div></div>
+      <div class="p"><div class="k">Part</div><div class="v">payment-worker</div></div>
+      <div class="p"><div class="k">Created</div><div class="v">2 days ago</div></div>
+      <div class="p"><div class="k">SLA</div><div class="v" style="color:var(--red);">6h left</div></div>
+    </div>
+    <div class="tabsbar">
+      <button class="rtab on" data-tab="timeline" onclick="switchTab('timeline',this)">Timeline</button>
+      <button class="rtab" data-tab="props" onclick="switchTab('props',this)">Properties</button>
+      <button class="rtab" data-tab="links" onclick="switchTab('links',this)">Links <span style="color:var(--mut2);" id="linkCount">5</span></button>
+      <button class="rtab" data-tab="activity" onclick="switchTab('activity',this)">Activity</button>
+    </div>
+
+    <!-- PROPERTIES TAB -->
+    <div class="tl tabpane" id="tab-props" style="display:none;">
+      <div class="tlsec mono">Properties</div>
+      <div class="proplist">
+        <div class="prow"><span class="pk">Status</span><span class="pv"><span class="chip chip-d">Open</span></span></div>
+        <div class="prow"><span class="pk">Priority</span><span class="pv"><span class="chip chip-r">P1</span></span></div>
+        <div class="prow"><span class="pk">Owner</span><span class="pv"><span class="av-s">MR</span>M. Rao</span></div>
+        <div class="prow"><span class="pk">Part</span><span class="pv">payment-worker</span></div>
+        <div class="prow"><span class="pk">Account</span><span class="pv">Northwind Corp</span></div>
+        <div class="prow"><span class="pk">Stage</span><span class="pv">Triage</span></div>
+        <div class="prow"><span class="pk">Tags</span><span class="pv"><span class="chip chip-b">latency</span> <span class="chip chip-b">enterprise</span></span></div>
+        <div class="prow"><span class="pk">SLA</span><span class="pv" style="color:var(--red);">Breaching in 6h</span></div>
+      </div>
+    </div>
+
+    <!-- LINKS TAB -->
+    <div class="tl tabpane" id="tab-links" style="display:none;">
+      <div class="tlsec mono">Linked records</div>
+      <div id="linksList" style="max-width:620px; display:flex; flex-direction:column; gap:10px;">
+        <div class="ev" style="cursor:default;"><div class="id"><span class="ty">incident</span>INC-142</div><p>relates to · reconstructed by Ripple</p></div>
+        <div class="ev" style="cursor:default;"><div class="id"><span class="ty">issue</span>ENG-381</div><p>relates to · prior revert</p></div>
+        <div class="ev" style="cursor:default;"><div class="id"><span class="ty">article</span>ADR-27</div><p>references · design decision</p></div>
+        <div class="ev" style="cursor:default;"><div class="id"><span class="ty">part</span>payment-worker</div><p>affects</p></div>
+        <div class="ev" style="cursor:default;"><div class="id"><span class="ty">part</span>renewals</div><p>impacts · high risk</p></div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY TAB -->
+    <div class="tl tabpane" id="tab-activity" style="display:none;">
+      <div class="tlsec mono">Activity log</div>
+      <div style="max-width:560px; font-size:12.5px; color:#444; display:flex; flex-direction:column; gap:11px;" id="activityList">
+        <div>• <b>J. Lin</b> created the ticket — 2d ago</div>
+        <div>• <b>M. Rao</b> set priority to P1 — 2d ago</div>
+        <div>• <b>M. Rao</b> invoked Ripple snap-in — just now</div>
+      </div>
+    </div>
+
+    <div class="tl tabpane" id="tab-timeline">
+      <div class="tlsec mono">Today</div>
+      <div class="tlitem">
+        <div class="av a1">JL</div>
+        <div class="tlbody"><div class="who"><b>J. Lin</b> <span>opened this ticket · 2d ago</span></div><div class="msg">Checkout timing out for Northwind at ~30% of attempts. Payment API p95 latency doubled since Tuesday. Enterprise tenants affected first.</div></div>
+      </div>
+      <div class="tlitem">
+        <div class="av a2">MR</div>
+        <div class="tlbody"><div class="who"><b>M. Rao</b> <span>· 1d ago</span></div><div class="msg">Looks worker-related again. Hesitant to touch the worker config — we had a bad incident last time it was changed. Running Ripple to reconstruct the history before we decide anything.</div></div>
+      </div>
+      <div class="tlitem" id="ripTl" style="display:none;">
+        <div class="av rip">R</div>
+        <div class="tlbody">
+          <div class="who"><b>Ripple</b> <span>· snap-in · just now</span></div>
+          <div class="ripcard">
+            <div class="rh"><span class="chip chip-a" style="font-size:10px;">Analysis complete</span><span class="tg mono">Context reconstructed</span></div>
+            <p style="font-size:12.5px; color:#2E2E2E; line-height:1.55;">The obvious fix touches a worker <b>also used by subscription renewal</b>. Six months ago the team deliberately kept this config because a prior change caused duplicate renewal billing. Recommending validation before any change — full plan in the panel.</p>
+            <div class="st">
+              <div><div class="n">6</div><div class="l">records</div></div>
+              <div><div class="n">2</div><div class="l">systems at risk</div></div>
+              <div><div class="n">3</div><div class="l">proposed tasks</div></div>
+              <div><div class="n" id="tlConf" style="color:var(--amber);">Med</div><div class="l">confidence</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tlitem" id="writebackTl" style="display:none;">
+        <div class="av rip">R</div>
+        <div class="tlbody"><div class="who"><b>Ripple</b> <span>· just now</span></div><div class="msg" id="wbMsg">Plan approved by Ansh. Created work items on payment-worker, linked to the supporting evidence. ↗</div></div>
+      </div>
+    </div>
+    </div><!-- /view-record -->
+  </main>
+
+  <!-- ===== RIGHT: RIPPLE SNAP-IN PANEL ===== -->
+  <aside class="panel">
+    <div class="ph">
+      <div class="top">
+        <div class="l"><div class="badge">R</div>
+          <div><div class="ttl">Ripple <span class="live"><i></i>live</span></div><div class="sub">context snap-in · TKT-4821</div></div>
+        </div>
+        <button class="pill pill-y pill-sm" onclick="rerun()">Re-run</button>
+      </div>
+      <div class="mini">
+        <div class="mstep" data-step="0">Problem</div>
+        <div class="mstep" data-step="1">Context</div>
+        <div class="mstep" data-step="2">Impact</div>
+        <div class="mstep" data-step="3">Review</div>
+        <div class="mstep" data-step="4">Approve</div>
+        <div class="mstep" data-step="5">Act</div>
+      </div>
+    </div>
+
+    <div class="pbody" id="pbody">
+      <!-- INTAKE STATE -->
+      <div id="intakeState">
+        <div class="snap">
+          <div class="sh"><div class="eyebrow mono"><span class="sqi"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10"/></svg></span>Problem intake</div></div>
+          <div class="pad">
+            <h3>Ask Ripple about this ticket</h3>
+            <p style="margin:8px 0 10px;">Ripple will reconstruct the organizational context behind this problem, map impact, and propose a safe plan.</p>
+            <div class="rationale" style="font-style:italic;">"Payment API latency is elevated. Can we safely change the payment-worker configuration?"</div>
+          </div>
+          <div class="foot"><button class="pill pill-y pill-sm full" onclick="runAnalysis()">▶ Run analysis</button></div>
+        </div>
+        <div id="runProgress" style="display:none; margin-top:12px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <!-- RESULT STATE (hidden until run) -->
+      <div id="resultState" class="hidden" style="display:flex; flex-direction:column; gap:12px;">
+
+        <!-- Context Bundle -->
+        <div class="snap" id="cardCtx">
+          <div class="sh"><div class="eyebrow mono"><span class="sqi"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Context Bundle</div><span class="chev" onclick="toggle('cardCtx')">⌄</span></div>
+          <div class="pad">
+            <h3>Why the config looks this way</h3>
+            <div class="rationale" style="margin:8px 0 2px;">The shared worker config was a <b>deliberate decision</b>. A past change broke subscription renewals, so the team locked it to protect ordering.</div>
+            <div class="ev hi" data-node="inc" onclick="pingNode('inc',this)"><div class="id"><span class="ty">incident</span>INC-142</div><p>Latency spikes twice in 6 months — both during renewal batch runs.</p></div>
+            <div class="ev" data-node="eng" onclick="pingNode('eng',this)"><div class="id"><span class="ty">issue</span>ENG-381</div><p>Earlier config change caused duplicate renewal billing. Reverted.</p></div>
+            <div class="ev" data-node="adr" onclick="pingNode('adr',this)"><div class="id"><span class="ty">article</span>ADR-27</div><p>Shared config is intentional to preserve renewal ordering guarantees.</p></div>
+            <div style="height:12px;"></div>
+            <div class="kv"><span class="k">Component</span><span class="v">payment-worker</span></div>
+            <div class="kv"><span class="k">Also consumed by</span><span class="v">checkout · renewals</span></div>
+            <div class="kv"><span class="k">Owning team</span><span class="v">Payments Platform</span></div>
+            <div class="kv"><span class="k">Decision owner</span><span class="v"><span class="av-s">MR</span>M. Rao</span></div>
+            <div class="kv"><span class="k">Related code</span><span class="v">3 commits · 1 PR</span></div>
+          </div>
+        </div>
+
+        <!-- Impact graph preview -->
+        <div class="snap" id="cardImp">
+          <div class="sh"><div class="eyebrow mono"><span class="sqi"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 11l8-4M8 13l8 4"/></svg></span>Impact graph</div><span class="chev" onclick="toggle('cardImp')">⌄</span></div>
+          <div class="pad">
+            <h3>Changing the worker affects renewals</h3>
+            <div style="background:var(--grey2); border:1px solid var(--line2); border-radius:9px; margin:9px 0;"><svg id="mini" viewBox="0 0 420 190" style="width:100%; display:block;"></svg></div>
+            <div class="warn"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><span><b>High-risk edge:</b> the fix touches a worker shared with subscription renewal. Blast radius: 2 systems · 1 team · 3 open works.</span></div>
+            <button class="pill pill-gh full" style="margin-top:11px;" onclick="openGraph()"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M4 14v6h6M20 10V4h-6M14 10l6-6M10 14l-6 6"/></svg>Open full impact graph</button>
+          </div>
+        </div>
+
+        <!-- Recommendation + validation -->
+        <div class="snap" id="cardRec">
+          <div class="sh"><div class="eyebrow mono"><span class="sqi"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 00-4-10z"/></svg></span>Recommendation</div><span class="chip chip-a" id="confChip" style="font-size:10px;">Medium confidence</span></div>
+          <div class="pad">
+            <h3>Validate queue behaviour before changing the worker</h3>
+            <div class="conf"><i id="confBar"></i></div>
+            <p style="margin-bottom:10px;">Investigate the payment-worker queue depth before touching the API service. The direct config change carries renewal-billing risk.</p>
+            <div class="warn" id="gapWarn"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><span id="gapTxt"><b>Missing information:</b> no current queue telemetry is available. Capture it before any change — this is why confidence is capped at medium.</span></div>
+            <button class="pill pill-gh pill-sm full" id="supplyBtn" style="margin-top:9px;" onclick="supplyTelemetry()">+ Supply queue telemetry</button>
+          </div>
+        </div>
+
+        <!-- Action plan with per-task approve -->
+        <div class="snap" id="planCard">
+          <div class="sh"><div class="eyebrow mono"><span class="sqi"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>Action plan</div><span class="chip chip-d" id="apprCount" style="font-size:10px;">2 of 3 approved</span></div>
+          <div class="pad" id="taskList"></div>
+          <div class="foot">
+            <button class="pill pill-dk pill-sm" id="commitBtn" onclick="approve()">Create 2 approved items</button>
+            <button class="pill pill-gh pill-sm" onclick="toggleEdit()">Edit tasks</button>
+            <button class="pill pill-gh pill-sm" onclick="rejectPlan()">Reject plan</button>
+          </div>
+        </div>
+
+        <!-- Post-approval -->
+        <div class="snap hidden" id="doneCard" style="border-color:#BFE6CE;">
+          <div class="sh"><div class="eyebrow mono" style="color:var(--green);"><span class="sqi" style="background:var(--greenbg);"><svg viewBox="0 0 24 24" style="stroke:var(--green);"><path d="M20 6L9 17l-5-5"/></svg></span>Created in DevRev</div></div>
+          <div class="pad" id="doneList"></div>
+        </div>
+
+        <div class="deeplink"><span>Expose this Context Bundle to other agents via <b>MCP</b>.</span><button class="pill pill-gh pill-sm" onclick="openMcp()">Preview MCP</button></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== FULL-SCREEN IMPACT GRAPH ===== -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modalhead">
+      <div><div class="eyebrow mono">Impact graph · TKT-4821</div><h2>Changing the payment-worker — ripple analysis</h2></div>
+      <div class="mhtools">
+        <button class="zbtn" onclick="zoom(0.15)">+</button><button class="zbtn" onclick="zoom(-0.15)">−</button>
+        <button class="zbtn" onclick="resetZoom()" style="font-size:11px;">reset</button>
+        <button class="closeX" onclick="closeGraph()">✕</button>
+      </div>
+    </div>
+    <div class="modalbody">
+      <div class="canvas"><svg id="big" viewBox="0 0 720 540"><g id="bigg"></g></svg></div>
+      <div class="side">
+        <div class="lg mono">Selected</div>
+        <div class="detailbox" id="detail"><div class="t">payment-worker</div><p>The proposed change. Click any connected node to see why it is affected and the evidence behind the dependency.</p></div>
+        <div class="lg mono">Filter by type</div>
+        <div class="legend2">
+          <span onclick="filterType('all')"><i style="background:#161616;"></i>All nodes</span>
+          <span onclick="filterType('risk')"><i style="background:#C8341F;"></i>High-risk dependency</span>
+          <span onclick="filterType('review')"><i style="background:#B6820A;"></i>Needs review</span>
+          <span onclick="filterType('ev')"><i style="background:#128A4B;"></i>Supporting evidence</span>
+        </div>
+        <div class="lg mono">Blast radius</div>
+        <div class="detailbox"><p><b>2</b> systems · <b>1</b> team · <b>3</b> open work items touched by this change.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MCP PREVIEW ===== -->
+<div class="overlay" id="mcpOverlay">
+  <div class="modal" style="width:min(620px,94vw); height:auto; max-height:86vh;">
+    <div class="modalhead"><div><div class="eyebrow mono">MCP · stretch</div><h2>Ripple as a context server</h2></div><button class="closeX" onclick="closeMcp()">✕</button></div>
+    <div style="padding:20px 22px; overflow-y:auto;">
+      <p style="font-size:13px; color:#444; line-height:1.6; margin-bottom:14px;">Other agents and dev tools can consume Ripple's reconstructed context without re-doing the work. Ripple exposes two read tools over the Model Context Protocol:</p>
+      <div style="background:#161616; color:#E8E8E8; border-radius:11px; padding:16px; font-family:'Chip Mono',monospace; font-size:11.5px; line-height:1.7; overflow-x:auto;">
+<span style="color:#FFE600;">get_context</span>(ticket: "TKT-4821") → {<br>
+&nbsp;&nbsp;problem, related_records[6],<br>
+&nbsp;&nbsp;likely_rationale, evidence[], unknowns[]<br>
+}<br><br>
+<span style="color:#FFE600;">get_recommendation</span>(ticket: "TKT-4821") → {<br>
+&nbsp;&nbsp;claim, confidence: "medium",<br>
+&nbsp;&nbsp;tasks[3], affected_systems[2]<br>
+}
+      </div>
+      <p style="font-size:11.5px; color:var(--mut); margin-top:14px;">Thin adapter over the same internal <b>Context Bundle</b> and <b>Action Graph</b> artifacts — no rewrite. Keep this a stretch goal until the core loop is solid.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COMMAND PALETTE ===== -->
+<div class="overlay" id="paletteOverlay" style="align-items:flex-start; padding-top:14vh;">
+  <div class="modal" style="width:min(560px,92vw); height:auto;">
+    <div style="padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;">
+      <span style="color:var(--mut);">⌘</span>
+      <input id="paletteInput" placeholder="Type a command… try /ripple" autocomplete="off" style="border:none; outline:none; font-size:15px; font-family:'Chip Text'; width:100%;" oninput="filterPalette()" onkeydown="paletteKey(event)">
+    </div>
+    <div id="paletteList" style="padding:8px; max-height:300px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ok">✓</span><span id="toastMsg">Plan approved — work items created in DevRev</span></div>
+
+<script>
+  const NS='http://www.w3.org/2000/svg';
+  function mk(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+  function setStep(i){document.querySelectorAll('.mstep').forEach(s=>{const n=+s.dataset.step;s.classList.toggle('done',n<i);s.classList.toggle('now',n===i);});}
+
+  /* ---------- TASK MODEL ---------- */
+  const tasks=[
+    {id:1,title:'Capture payment-worker queue telemetry',meta:'<b>Owner:</b> Payments Platform · <b>Fills gap:</b> missing telemetry',deps:['evidence · INC-142'],approved:true},
+    {id:2,title:'Reproduce latency against a renewal batch in staging',meta:'<b>Owner:</b> QA',deps:['⟶ depends on task 1','evidence · ENG-381'],approved:true},
+    {id:3,title:'Draft config change behind a flag — do not ship',meta:'<b>Owner:</b> M. Rao · <b>Condition:</b> only if renewals unaffected',deps:['⟶ depends on task 2','evidence · ADR-27'],approved:false},
+  ];
+  function renderTasks(){
+    const el=document.getElementById('taskList'); el.innerHTML='';
+    tasks.forEach(t=>{
+      const d=document.createElement('div');
+      d.className='task'+(t.approved?' approved':'')+(t.approved===false?'':'');
+      if(t.approved===false) d.classList.add('rejected');
+      d.innerHTML=`<div class="num">${t.id}</div>
+        <div><h4>${t.title}</h4><div class="m">${t.meta}</div>
+          <div class="deps">${t.deps.map(x=>`<span class="dep">${x}</span>`).join('')}</div></div>
+        <div class="tact">
+          <button class="tbtn yes ${t.approved?'on':''}" title="Approve" onclick="setTask(${t.id},true)"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <button class="tbtn no ${t.approved===false?'on':''}" title="Reject" onclick="setTask(${t.id},false)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>`;
+      el.appendChild(d);
+    });
+    const n=tasks.filter(t=>t.approved).length;
+    document.getElementById('apprCount').textContent=`${n} of ${tasks.length} approved`;
+    const btn=document.getElementById('commitBtn');
+    btn.textContent=n?`Create ${n} approved item${n>1?'s':''}`:'No tasks approved';
+    btn.disabled=!n;
+  }
+  function setTask(id,v){const t=tasks.find(x=>x.id===id); t.approved=(t.approved===v)?null:v; renderTasks();}
+
+  /* ---------- EDIT TASKS ---------- */
+  let editing=false;
+  function toggleEdit(){
+    editing=!editing;
+    const el=document.getElementById('taskList');
+    if(editing){
+      el.innerHTML='';
+      tasks.forEach(t=>{
+        const d=document.createElement('div'); d.style.cssText='padding:10px 0; border-bottom:1px solid var(--line2);';
+        d.innerHTML=`<div style="font-size:10px;color:var(--mut);margin-bottom:4px;">Task ${t.id} title</div>
+          <input value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;font-family:'Chip Text';margin-bottom:6px;" oninput="tasks[${t.id-1}].title=this.value">`;
+        el.appendChild(d);
+      });
+      toast('Editing tasks — click Done to save');
+    } else { renderTasks(); toast('Task edits saved'); }
+    document.querySelector('#planCard .foot button:nth-child(2)').textContent=editing?'Done':'Edit tasks';
+  }
+  function rejectPlan(){
+    tasks.forEach(t=>t.approved=false); renderTasks();
+    toast('Plan rejected — no items created');
+  }
+
+  /* ---------- RUN ANALYSIS (streamed) ---------- */
+  const phases=['Reading problem & related records…','Reconstructing context from 6 records…','Mapping dependencies & impact…','Scoring recommendation & gaps…'];
+  function runAnalysis(){
+    const prog=document.getElementById('runProgress'); prog.style.display='flex'; prog.innerHTML='';
+    document.querySelector('#intakeState .foot button').disabled=true;
+    let i=0; setStep(0);
+    const row=()=>{ if(i<phases.length){
+        const r=document.createElement('div'); r.className='runbar'; r.innerHTML=`<span class="spin"></span><span>${phases[i]}</span>`; prog.appendChild(r);
+        setStep(i);
+        setTimeout(()=>{ r.innerHTML=`<span style="color:var(--green);font-weight:700;">✓</span><span>${phases[i].replace('…','')}</span>`; i++; row(); }, 620);
+      } else { finishRun(); } };
+    row();
+  }
+  function finishRun(){
+    setStep(3);
+    document.getElementById('intakeState').classList.add('hidden');
+    document.getElementById('resultState').classList.remove('hidden');
+    document.getElementById('ripTl').style.display='grid';
+    renderTasks();
+  }
+  function rerun(){
+    supplied=false; editing=false;
+    tasks[0].approved=true; tasks[1].approved=true; tasks[2].approved=false;
+    document.getElementById('resultState').classList.add('hidden');
+    document.getElementById('planCard').classList.remove('hidden');
+    document.getElementById('doneCard').classList.add('hidden');
+    document.getElementById('ripTl').style.display='none';
+    document.getElementById('writebackTl').style.display='none';
+    document.getElementById('intakeState').classList.remove('hidden');
+    document.getElementById('runProgress').style.display='none';
+    document.querySelector('#intakeState .foot button').disabled=false;
+    // reset confidence
+    document.getElementById('confBar').style.width='58%';
+    document.getElementById('confBar').style.background='linear-gradient(90deg,#D9A400,#FFD233)';
+    document.getElementById('confChip').textContent='Medium confidence'; document.getElementById('confChip').className='chip chip-a';
+    document.getElementById('supplyBtn').style.display='';
+    const w=document.getElementById('gapWarn'); w.classList.remove('resolved');
+    document.getElementById('linkCount').textContent='5';
+    setStep(-1);
+    toast('Ripple reset — ready to run');
+  }
+
+  /* ---------- TAB SWITCHING ---------- */
+  function switchTab(name,btn){
+    document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('on')); btn.classList.add('on');
+    document.querySelectorAll('.tabpane').forEach(p=>p.style.display='none');
+    document.getElementById('tab-'+name).style.display='block';
+  }
+
+  /* ---------- MCP MODAL ---------- */
+  function openMcp(){document.getElementById('mcpOverlay').classList.add('show');}
+  function closeMcp(){document.getElementById('mcpOverlay').classList.remove('show');}
+  document.getElementById('mcpOverlay').addEventListener('click',e=>{if(e.target.id==='mcpOverlay')closeMcp();});
+
+  /* ---------- COMMAND PALETTE ---------- */
+  const commands=[
+    {k:'/ripple',d:'Run Ripple analysis on this ticket',fn:()=>{closePalette();if(document.getElementById('resultState').classList.contains('hidden'))runAnalysis();else toast('Analysis already complete');}},
+    {k:'Open impact graph',d:'View the full dependency graph',fn:()=>{closePalette();openGraph();}},
+    {k:'Approve plan',d:'Create approved work items',fn:()=>{closePalette();approve();}},
+    {k:'Preview MCP',d:'See the context server tools',fn:()=>{closePalette();openMcp();}},
+    {k:'Reset Ripple',d:'Start over',fn:()=>{closePalette();rerun();}},
+    {k:'Go to Tickets',d:'Open the tickets list',fn:()=>{closePalette();go('tickets',document.querySelector('[data-view=tickets]'));}},
+    {k:'Go to My work',d:'Open your work queue',fn:()=>{closePalette();go('mywork',document.querySelector('[data-view=mywork]'));}},
+    {k:'Go to Dashboards',d:'Ripple impact metrics',fn:()=>{closePalette();go('dash',document.querySelector('[data-view=dash]'));}},
+    {k:'Open TKT-4821',d:'Jump to the demo ticket',fn:()=>{closePalette();openRecord();}},
+  ];
+  function openPalette(){document.getElementById('paletteOverlay').classList.add('show');document.getElementById('paletteInput').value='';filterPalette();setTimeout(()=>document.getElementById('paletteInput').focus(),50);}
+  function closePalette(){document.getElementById('paletteOverlay').classList.remove('show');}
+  function filterPalette(){
+    const q=document.getElementById('paletteInput').value.toLowerCase();
+    const list=document.getElementById('paletteList'); list.innerHTML='';
+    commands.filter(c=>c.k.toLowerCase().includes(q)||c.d.toLowerCase().includes(q)).forEach((c,i)=>{
+      const d=document.createElement('div'); d.className='palrow'; d.style.cssText='padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;'+(i===0?'background:var(--grey);':'');
+      d.innerHTML=`<span style="font-weight:600;font-size:13px;">${c.k}</span><span style="font-size:11px;color:var(--mut);">${c.d}</span>`;
+      d.onmouseenter=()=>{document.querySelectorAll('.palrow').forEach(r=>r.style.background='');d.style.background='var(--grey)';};
+      d.onclick=c.fn; list.appendChild(d);
+    });
+  }
+  function paletteKey(e){
+    if(e.key==='Enter'){const q=document.getElementById('paletteInput').value.toLowerCase();const m=commands.find(c=>c.k.toLowerCase().includes(q)||c.d.toLowerCase().includes(q));if(m)m.fn();}
+    if(e.key==='Escape')closePalette();
+  }
+  document.getElementById('paletteOverlay').addEventListener('click',e=>{if(e.target.id==='paletteOverlay')closePalette();});
+  document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openPalette();}});
+
+  /* ---------- VALIDATION: supply telemetry raises confidence ---------- */
+  let supplied=false;
+  function supplyTelemetry(){
+    if(supplied) return; supplied=true;
+    document.getElementById('confBar').style.width='88%';
+    document.getElementById('confBar').style.background='linear-gradient(90deg,#0E7A42,#2EC27A)';
+    document.getElementById('confChip').textContent='High confidence';
+    document.getElementById('confChip').className='chip chip-g'; document.getElementById('confChip').style.fontSize='10px';
+    document.getElementById('tlConf').textContent='High'; document.getElementById('tlConf').style.color='var(--green)';
+    const w=document.getElementById('gapWarn'); w.classList.add('resolved');
+    w.querySelector('svg').outerHTML='<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
+    document.getElementById('gapTxt').innerHTML='<b>Gap resolved:</b> queue telemetry supplied. Confidence raised to high — the recommendation now rests on current data.';
+    document.getElementById('supplyBtn').style.display='none';
+    toast('Telemetry added — confidence recalculated to High');
+  }
+
+  /* ---------- MINI GRAPH ---------- */
+  const miniNodes={};
+  (function(){
+    const svg=document.getElementById('mini');
+    const nodes=[
+      {id:'worker',x:66,y:95,r:28,c:'#161616',t:'worker'},
+      {id:'renewals',x:235,y:48,r:24,c:'#C8341F',t:'renewals'},
+      {id:'checkout',x:235,y:142,r:23,c:'#B6820A',t:'checkout'},
+      {id:'eng',x:360,y:48,r:18,c:'#128A4B',t:'ENG-381'},
+      {id:'inc',x:360,y:138,r:18,c:'#128A4B',t:'INC-142'},
+    ];
+    const idx=Object.fromEntries(nodes.map((n,i)=>[n.id,i]));
+    [['worker','renewals','h'],['worker','checkout','r'],['renewals','eng','o'],['worker','inc','o']].forEach(([a,b,k])=>{
+      const A=nodes[idx[a]],B=nodes[idx[b]];const ec={h:'#C8341F',r:'#B6820A',o:'#C8C8C8'};
+      const l=mk('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,stroke:ec[k],'stroke-width':k==='h'?3:1.6});if(k!=='h')l.setAttribute('stroke-dasharray','4 4');svg.appendChild(l);});
+    nodes.forEach(n=>{const g=mk('g',{}); const c=mk('circle',{cx:n.x,cy:n.y,r:n.r,fill:n.c}); g.appendChild(c);
+      const t=mk('text',{x:n.x,y:n.y+3,'text-anchor':'middle',fill:'#fff','font-size':9,'font-weight':600,'font-family':"'Chip Display',sans-serif"});t.textContent=n.t;g.appendChild(t);
+      svg.appendChild(g); miniNodes[n.id]=c;});
+  })();
+  function pingNode(id,row){
+    document.querySelectorAll('#cardCtx .ev').forEach(e=>e.classList.remove('active'));
+    row.classList.add('active');
+    const c=miniNodes[id]; if(!c) return;
+    c.animate([{r:c.getAttribute('r')},{r:+c.getAttribute('r')+8},{r:c.getAttribute('r')}],{duration:600});
+  }
+
+  /* ---------- BIG GRAPH ---------- */
+  const detailData={
+    worker:{t:'payment-worker',p:'The proposed change — a config edit to the shared worker. Everything connected below depends on it.',lk:'part · payment-worker'},
+    renewals:{t:'renewals · HIGH RISK',p:'Subscription renewal consumes the same worker. A prior config change here caused duplicate renewal billing (ENG-381). Highest-risk path — validate before touching.',lk:'part · renewals-service'},
+    checkout:{t:'checkout · review',p:'Checkout also consumes the worker. The original symptom (TKT-4821) surfaces here. Needs review but no history of breakage.',lk:'part · checkout-service'},
+    eng:{t:'ENG-381 · evidence',p:'Earlier config change throttled the worker and triggered duplicate renewal processing. Reverted. This is why the current config is locked.',lk:'issue · ENG-381'},
+    adr:{t:'ADR-27 · evidence',p:'Design decision record: the shared config is intentional to preserve renewal ordering guarantees.',lk:'article · ADR-27'},
+    inc:{t:'INC-142 · evidence',p:'Latency spikes recurred twice in 6 months, both during renewal batch runs. Associates the worker with the latency pattern.',lk:'incident · INC-142'},
+  };
+  const bigNodes=[
+    {id:'worker',x:150,y:270,r:52,c:'#161616',t:'payment-worker',s:'proposed change',k:'change'},
+    {id:'renewals',x:470,y:150,r:46,c:'#C8341F',t:'renewals',s:'duplicate-billing risk',k:'risk'},
+    {id:'checkout',x:470,y:400,r:44,c:'#B6820A',t:'checkout',s:'shared consumer',k:'review'},
+    {id:'eng',x:645,y:120,r:32,c:'#128A4B',t:'ENG-381',s:'prior revert',k:'ev'},
+    {id:'adr',x:655,y:235,r:32,c:'#128A4B',t:'ADR-27',s:'ordering rule',k:'ev'},
+    {id:'inc',x:360,y:470,r:32,c:'#128A4B',t:'INC-142',s:'latency evidence',k:'ev'},
+  ];
+  const bigEdges=[['worker','renewals','h'],['worker','checkout','r'],['renewals','eng','o'],['renewals','adr','o'],['worker','inc','o']];
+  (function(){
+    const g=document.getElementById('bigg'); const idx=Object.fromEntries(bigNodes.map((n,i)=>[n.id,i])); const ec={h:'#C8341F',r:'#B6820A',o:'#CFCFCF'};
+    bigEdges.forEach(([a,b,k])=>{const A=bigNodes[idx[a]],B=bigNodes[idx[b]];
+      const l=mk('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,stroke:ec[k],'stroke-width':k==='h'?4:2});if(k!=='h')l.setAttribute('stroke-dasharray','6 6');g.appendChild(l);
+      if(k==='h'){const mx=(A.x+B.x)/2,my=(A.y+B.y)/2;g.appendChild(mk('rect',{x:mx-42,y:my-26,width:84,height:18,rx:9,fill:'#C8341F'}));const tt=mk('text',{x:mx,y:my-13,'text-anchor':'middle',fill:'#fff','font-size':10,'font-weight':700,'font-family':"'Chip Mono',monospace"});tt.textContent='HIGH RISK';g.appendChild(tt);}});
+    bigNodes.forEach(n=>{
+      const gg=mk('g',{class:'node'+(n.id==='worker'?' sel':''),'data-id':n.id,'data-k':n.k});
+      gg.appendChild(mk('circle',{cx:n.x,cy:n.y,r:n.r,fill:n.c,stroke:'transparent','stroke-width':2}));
+      const t=mk('text',{x:n.x,y:n.y+(n.r>40?-2:3),'text-anchor':'middle',fill:'#fff','font-size':n.r>40?15:12,'font-weight':700,'font-family':"'Chip Display',sans-serif"});t.textContent=n.t;gg.appendChild(t);
+      if(n.r>40){const t2=mk('text',{x:n.x,y:n.y+16,'text-anchor':'middle',fill:'rgba(255,255,255,.75)','font-size':9,'font-family':"'Chip Text',sans-serif"});t2.textContent=n.s;gg.appendChild(t2);}
+      else{const sub=mk('text',{x:n.x,y:n.y+n.r+15,'text-anchor':'middle',fill:'#6E6E6E','font-size':10.5,'font-family':"'Chip Text',sans-serif"});sub.textContent=n.s;gg.appendChild(sub);}
+      gg.addEventListener('click',()=>selectNode(n.id));
+      g.appendChild(gg);
+    });
+  })();
+  function selectNode(id){
+    document.querySelectorAll('#big .node').forEach(x=>x.classList.remove('sel'));
+    document.querySelector(`#big .node[data-id="${id}"]`).classList.add('sel');
+    const d=detailData[id];
+    document.getElementById('detail').innerHTML=`<div class="t">${d.t}</div><p>${d.p}</p><div class="lk">↗ <a href="#">${d.lk}</a></div>`;
+    // sync evidence row highlight in the panel if it's an evidence node
+    const row=document.querySelector(`#cardCtx .ev[data-node="${id}"]`);
+    if(row){document.querySelectorAll('#cardCtx .ev').forEach(e=>e.classList.remove('active'));row.classList.add('active');}
+  }
+  function filterType(k){
+    document.querySelectorAll('#big .node').forEach(x=>{
+      const show=(k==='all')||x.dataset.k===k||x.dataset.id==='worker';
+      x.classList.toggle('dim',!show);
+    });
+  }
+  let scale=1;
+  function applyZoom(){document.getElementById('bigg').setAttribute('transform',`scale(${scale})`);}
+  function zoom(d){scale=Math.min(1.8,Math.max(0.6,scale+d));applyZoom();}
+  function resetZoom(){scale=1;applyZoom();}
+
+  function openGraph(){document.getElementById('overlay').classList.add('show');}
+  function closeGraph(){document.getElementById('overlay').classList.remove('show');}
+  document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeGraph();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGraph();});
+
+  /* ---------- APPROVE / WRITE-BACK ---------- */
+  function approve(){
+    const appr=tasks.filter(t=>t.approved);
+    if(!appr.length) return;
+    setStep(5);
+    document.getElementById('planCard').classList.add('hidden');
+    const done=document.getElementById('doneCard'); done.classList.remove('hidden');
+    const dl=document.getElementById('doneList'); dl.innerHTML='';
+    const ids=['ISS-5120','ISS-5121','ISS-5122'];
+    appr.forEach((t,i)=>{const d=document.createElement('div');d.className='task approved';
+      d.innerHTML=`<div class="num">✓</div><div><h4>${ids[i]} · ${t.title.split(' — ')[0]}</h4><div class="m">${i===0?'Payments Platform · tag <b>ripple-generated</b>':'Blocked by '+ids[i-1]}</div></div><span class="chip chip-g" style="font-size:10px;">Open</span>`;
+      dl.appendChild(d);});
+    document.getElementById('writebackTl').style.display='grid';
+    document.getElementById('wbMsg').innerHTML=`Plan approved by Ansh. Created <b>${ids.slice(0,appr.length).join('</b>, <b>')}</b> on payment-worker, linked to the supporting evidence. ↗`;
+    // reflect new links live
+    document.getElementById('linkCount').textContent=5+appr.length;
+    const ll=document.getElementById('linksList');
+    appr.forEach((t,i)=>{const d=document.createElement('div');d.className='ev';d.style.cssText='cursor:default;border-left-color:var(--green);';d.innerHTML=`<div class="id"><span class="ty" style="background:var(--green);">issue</span>${ids[i]}</div><p>created by Ripple · ripple-generated</p>`;ll.appendChild(d);});
+    const al=document.getElementById('activityList');
+    const ad=document.createElement('div');ad.innerHTML=`• <b>Ripple</b> created ${appr.length} work item${appr.length>1?'s':''} — just now`;al.appendChild(ad);
+    toast(`${appr.length} work item${appr.length>1?'s':''} created in DevRev`);
+  }
+  function toast(m){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3400);}
+  function toggle(id){document.getElementById(id).classList.toggle('collapsed');}
+
+  /* ---------- LEFT-NAV VIEW ROUTING ---------- */
+  const views={
+    inbox:{crumb:'Inbox',title:'Inbox',rows:[
+      {id:'TKT-4821',t:'Payment API latency elevated — enterprise checkout failing',meta:'P1 · Northwind · you were mentioned',chip:'chip-r',chipT:'P1',open:true},
+      {id:'ISS-5102',t:'Flaky renewal batch test in CI',meta:'assigned to you · 3h ago',chip:'chip-a',chipT:'P2'},
+      {id:'TKT-4790',t:'Dashboard export returns empty CSV',meta:'awaiting your reply · 1d ago',chip:'chip-d',chipT:'P3'},
+    ]},
+    mywork:{crumb:'My work',title:'My work · 4 open',rows:[
+      {id:'ISS-5102',t:'Flaky renewal batch test in CI',meta:'In progress · due tomorrow',chip:'chip-a',chipT:'P2'},
+      {id:'ISS-4980',t:'Add queue-depth metric to payment-worker',meta:'To do · Payments',chip:'chip-d',chipT:'P2'},
+      {id:'TKT-4821',t:'Payment API latency elevated',meta:'Triage · you are owner',chip:'chip-r',chipT:'P1',open:true},
+      {id:'ISS-4851',t:'Document renewal ordering guarantee',meta:'In review',chip:'chip-d',chipT:'P3'},
+    ]},
+    tickets:{crumb:'Tickets',title:'Tickets · 24 open',rows:[
+      {id:'TKT-4821',t:'Payment API latency elevated — enterprise checkout failing',meta:'P1 · Northwind · M. Rao · SLA 6h',chip:'chip-r',chipT:'P1',open:true},
+      {id:'TKT-4815',t:'Webhook deliveries delayed for EU tenants',meta:'P2 · Acme · 1d ago',chip:'chip-a',chipT:'P2'},
+      {id:'TKT-4790',t:'Dashboard export returns empty CSV',meta:'P3 · Globex · 1d ago',chip:'chip-d',chipT:'P3'},
+      {id:'TKT-4777',t:'SSO login loop after password reset',meta:'P2 · Initech · 2d ago',chip:'chip-a',chipT:'P2'},
+      {id:'TKT-4762',t:'Invoice PDF missing tax line',meta:'P3 · Umbrella · 3d ago',chip:'chip-d',chipT:'P3'},
+    ]},
+    issues:{crumb:'Issues',title:'Issues · 61 open',rows:[
+      {id:'ENG-381',t:'Worker config change caused duplicate renewal billing (reverted)',meta:'Closed · Payments · evidence for TKT-4821',chip:'chip-g',chipT:'Done'},
+      {id:'ISS-5102',t:'Flaky renewal batch test in CI',meta:'In progress · QA',chip:'chip-a',chipT:'P2'},
+      {id:'ISS-4980',t:'Add queue-depth metric to payment-worker',meta:'To do · Payments',chip:'chip-d',chipT:'P2'},
+      {id:'INC-142',t:'Payment latency SEV-2 — recurring during renewal runs',meta:'Incident · evidence',chip:'chip-r',chipT:'SEV2'},
+    ]},
+    parts:{crumb:'Parts',title:'Parts · product tree',rows:[
+      {id:'PART · payments',t:'Payments',meta:'product · 3 components',chip:'chip-b',chipT:'product'},
+      {id:'PART · payment-worker',t:'payment-worker',meta:'component · shared by checkout + renewals',chip:'chip-r',chipT:'high traffic'},
+      {id:'PART · renewals',t:'renewals-service',meta:'component · consumes worker',chip:'chip-a',chipT:'at risk'},
+      {id:'PART · checkout',t:'checkout-service',meta:'component · consumes worker',chip:'chip-d',chipT:'component'},
+    ]},
+    code:{crumb:'Code changes',title:'Code changes · recent',rows:[
+      {id:'PR #2213',t:'Revert worker throttle config',meta:'merged · M. Rao · tied to ENG-381',chip:'chip-g',chipT:'merged'},
+      {id:'PR #2298',t:'Add queue-depth gauge to worker',meta:'open · 2 reviews requested',chip:'chip-a',chipT:'open'},
+      {id:'commit 9f3a1c',t:'chore: bump payment SDK',meta:'main · 4h ago',chip:'chip-d',chipT:'commit'},
+    ]},
+    market:{crumb:'Marketplace',title:'Snap-in marketplace',rows:[
+      {id:'Ripple',t:'Ripple — context reconstruction & safe actions',meta:'installed · by you',chip:'chip-g',chipT:'installed'},
+      {id:'PagerDuty',t:'PagerDuty incident sync',meta:'available',chip:'chip-d',chipT:'install'},
+      {id:'Linear',t:'Linear two-way sync',meta:'available',chip:'chip-d',chipT:'install'},
+    ]},
+  };
+  function listRow(r){
+    const click=r.id.startsWith('TKT-4821')?`onclick="openRecord()"`:`onclick="toast('${r.id} — not in this demo')"`;
+    return `<div class="ev" style="cursor:pointer;margin-top:0;display:flex;justify-content:space-between;align-items:center;gap:14px;" ${click}>
+      <div><div class="id"><span class="ty">${r.id}</span>${r.open?'<span class="chip chip-r" style="font-size:9px;margin-left:4px;">OPEN</span>':''}</div><p style="color:#2A2A2A;font-size:12.5px;">${r.t}</p><p style="margin-top:2px;">${r.meta}</p></div>
+      <span class="chip ${r.chip}" style="font-size:10px;white-space:nowrap;">${r.chipT}</span></div>`;
+  }
+  function renderList(v){
+    const d=views[v];
+    document.getElementById('listCrumb').textContent=d.crumb;
+    document.getElementById('listBody').innerHTML=`<h1 style="font-size:24px;margin-bottom:18px;">${d.title}</h1><div style="display:flex;flex-direction:column;gap:10px;max-width:720px;">${d.rows.map(listRow).join('')}</div>`;
+  }
+  function go(v,el){
+    document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));
+    if(el)el.classList.add('on');
+    document.getElementById('view-record').style.display='none';
+    document.getElementById('view-list').style.display='none';
+    if(v==='tickets'){ /* tickets list, but keep record reachable */ renderList('tickets'); document.getElementById('view-list').style.display='block'; }
+    else if(views[v]){ renderList(v); document.getElementById('view-list').style.display='block'; }
+    else if(v==='ripple'){ renderRippleHome(); document.getElementById('view-list').style.display='block'; }
+    else if(v==='dash'){ renderDash(); document.getElementById('view-list').style.display='block'; }
+  }
+  function openRecord(){
+    document.getElementById('view-list').style.display='none';
+    document.getElementById('view-record').style.display='block';
+    document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));
+    document.querySelector('[data-view=tickets]').classList.add('on');
+    toast('Opened TKT-4821');
+  }
+  function renderRippleHome(){
+    document.getElementById('listCrumb').textContent='Ripple';
+    document.getElementById('listBody').innerHTML=`
+      <h1 style="font-size:24px;margin-bottom:6px;">Ripple</h1>
+      <p style="color:var(--mut);font-size:14px;max-width:620px;margin-bottom:20px;">Reconstructs the organizational context behind a problem, maps impact, and turns it into a safe, approved plan. Run it from any ticket, or start a new analysis here.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+        <button class="pill pill-y" onclick="openRecord()">Open TKT-4821 with Ripple</button>
+        <button class="pill pill-gh" onclick="openPalette()">New analysis</button>
+      </div>
+      <h3 style="font-size:16px;margin-bottom:12px;">Recent analyses</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:680px;">
+        <div class="ev" style="cursor:pointer;margin-top:0;" onclick="openRecord()"><div class="id"><span class="ty">TKT-4821</span></div><p style="color:#2A2A2A;">Payment-worker change · 6 records · 3 tasks · medium confidence</p></div>
+        <div class="ev" style="cursor:default;margin-top:0;"><div class="id"><span class="ty">TKT-4790</span></div><p>Dashboard export · 4 records · 2 tasks · high confidence</p></div>
+      </div>`;
+  }
+  function renderDash(){
+    document.getElementById('listCrumb').textContent='Dashboards';
+    document.getElementById('listBody').innerHTML=`
+      <h1 style="font-size:24px;margin-bottom:18px;">Ripple impact dashboard</h1>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:720px;margin-bottom:22px;">
+        ${[['12','analyses this week'],['31','work items created'],['4','high-risk changes caught']].map(([n,l])=>`<div class="snap" style="animation:none;"><div class="pad"><div style="font-family:'Chip Display';font-size:30px;font-weight:800;">${n}</div><div style="font-size:12px;color:var(--mut);">${l}</div></div></div>`).join('')}
+      </div>
+      <div class="snap" style="max-width:720px;animation:none;"><div class="pad">
+        <h4 style="margin-bottom:12px;">Confidence of recommendations</h4>
+        <div style="display:flex;align-items:flex-end;gap:10px;height:120px;">
+          ${[['High',70,'#128A4B'],['Medium',45,'#B6820A'],['Low',18,'#C8341F']].map(([l,h,c])=>`<div style="flex:1;text-align:center;"><div style="height:${h}px;background:${c};border-radius:7px 7px 0 0;"></div><div style="font-size:11px;color:var(--mut);margin-top:6px;">${l}</div></div>`).join('')}
+        </div>
+      </div></div>`;
+  }
+
+  /* ---------- INIT ---------- */
+  setStep(0); // start at Problem
+</script>
+</body>
+</html>

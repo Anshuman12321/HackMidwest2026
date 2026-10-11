@@ -1,0 +1,40 @@
+version: "2"
+name: Ripple
+description: Shows Ripple review status on an issue and links to the Ripple web app.
+inputs:
+  organization:
+    - name: ripple_service_url
+      ui:
+        display_name: Ripple service URL
+      description: HTTPS origin of the deployed Ripple service.
+      field_type: text
+service_account:
+  display_name: Ripple
+  scopes:
+    self: []
+    impersonate:
+      - act_as: all_devusers
+        scopes:
+          - scope: issue:read
+            optional: false
+            reason: Identify the issue the launcher is shown on and its Ripple review status as the current user.
+          - scope: dev_user:read
+            optional: false
+            reason: Resolve the current actor so the Ripple service can authenticate the request.
+functions:
+  - name: ripple_initialize
+    description: Render the Ripple launcher card for the issue.
+  - name: ripple_action
+    description: Re-render the Ripple launcher card; no decisions are processed in DevRev.
+snap_kit_actions:
+  - name: ripple_launcher
+    description: Ripple launcher.
+    function: ripple_action
+snap_components:
+  - name: ripple_issue_brief
+    display_name: Ripple
+    description: Open this issue in Ripple and see its review status.
+    surface: issue
+    initializer: ripple_initialize
+    snap_kit_action_name: ripple_launcher
+    snap_kit_body: { snaps: [] }
