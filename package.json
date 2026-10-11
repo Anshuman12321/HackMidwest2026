@@ -11,12 +11,15 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "node --test contracts/investigation.test.ts contracts/v1/investigation.test.ts apps/ripple/src/*.test.ts",
+    "test": "node --test contracts/investigation.test.ts contracts/investigate.test.ts contracts/v1/investigation.test.ts apps/ripple/src/*.test.ts",
     "fixtures": "node contracts/build-examples.ts",
     "preview": "node apps/ripple/src/preview.ts",
     "start": "node apps/ripple/src/main.ts",
     "migrate": "node apps/ripple/src/migrate.ts",
-    "build:snap-in": "node apps/ripple/snap-in/build.ts"
+    "build:snap-in": "node apps/ripple/snap-in/build.ts",
+    "start:agent": "node apps/ripple/src/agent-main.ts",
+    "preview:live": "node apps/ripple/src/preview.ts --live",
+    "investigate": "npm run investigate --workspace=@ripple/contracts --"
   },
   "dependencies": {
     "pg": "8.16.3",

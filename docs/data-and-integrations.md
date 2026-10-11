@@ -1,6 +1,6 @@
 # Native Ripple implementation update
 
-The issue brief, cited graph, owner selection and whole-plan approval are implemented in [apps/ripple](../apps/ripple/README.md), with a v2 internal-ticket executor and durable PostgreSQL storage. Start from ISS-42; the Brazil proposal creates one ticket containing three investigation sections. V1 issue fixtures remain under `contracts/v1` for compatibility only. The agent endpoints, hosted service/database, delegated MCP credentials and Team01 component/second-user verification remain deployment work. No new DevRev records were created by the local implementation checks. The earlier status/design notes below are historical; the v2 contract is authoritative for new executable plans.
+The issue brief, cited graph, owner selection and whole-plan approval are implemented in [apps/ripple](../apps/ripple/README.md), with a v2 internal-ticket executor and durable PostgreSQL storage. Start from ISS-42; the Brazil proposal creates one ticket containing three investigation sections. V1 issue fixtures remain under `contracts/v1` for compatibility only. The agent endpoints and live-read local browser are integrated. Hosted service/database, delegated deployment credentials and Team01 component/second-user verification remain deployment work. No new DevRev records were created by the local implementation checks. The earlier status/design notes below are historical; the v2 contract is authoritative for new executable plans.
 
 ---
 

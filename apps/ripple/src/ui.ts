@@ -31,11 +31,12 @@ export function bindState(state: UIState, response: InvestigationResponse): UISt
     digest: response.action_graph?.plan_digest ?? null, decisionKey: randomUUID() };
 }
 export function renderBrief(options: { state: UIState; signedState: string; response?: InvestigationResponse;
-  plan?: Plan; owners?: Owner[]; imageUrl?: string; error?: string; preview?: boolean }): { snaps: Snap[] } {
+  plan?: Plan; owners?: Owner[]; imageUrl?: string; error?: string; preview?: boolean | 'live' }): { snaps: Snap[] } {
   const { state, signedState: block, response, plan, owners = [], imageUrl, error, preview } = options;
   const graph = response?.action_graph;
   const snaps: Snap[] = [];
-  if (preview) snaps.push(card('Local fixture preview', [content(plain('This preview simulates the workflow. It cannot create DevRev work.'))]));
+  if (preview) snaps.push(card(preview === 'live' ? 'Live DevRev reads; simulated ticket creation' : 'Local fixture preview',
+    [content(plain(preview === 'live' ? 'Source access is checked using the local connector. Approval creates PREVIEW tickets only. No DevRev work is created.' : 'This preview simulates the workflow. It cannot create DevRev work.'))]));
   if (error) snaps.push(card('Review needed', [content(plain(error)), actions(button('refresh', 'Refresh review', block))]));
   snaps.push(card('Ripple · issue brief', [content(plain(response?.outcome.statement ?? 'Restore Brazil subscription renewals without double billing'),
     plain('Issue → Findings → Impact → Review → Execution')),
@@ -118,7 +119,7 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
     snaps.push(card('Approve this revision', [content(plain(`Revision ${graph.revision} · Expires ${graph.expires_at}`),
       plain(`Digest ${graph.plan_digest.slice(0, 12)} · ${graph.actions.length} internal execution ticket${graph.actions.length === 1 ? '' : 's'}`),
       plain(disabled ? 'Select current owners and resolve any investigation blockers before approval.' : 'Owner changes are saved as a new revision before this approval becomes available.')),
-      actions(button('approve', `Approve & create ${graph.actions.length} ticket${graph.actions.length === 1 ? '' : 's'}`, block, 'approve', disabled),
+      actions(button('approve', `Approve & ${preview ? 'simulate' : 'create'} ${graph.actions.length} ticket${graph.actions.length === 1 ? '' : 's'}`, block, 'approve', disabled),
         button('reject', 'Reject plan', block))]));
   }
   return { snaps };

@@ -2,13 +2,18 @@
 
 The executable contract is now **v2.0**: propose `create_ticket` actions with `visibility: "internal"`, no issue priority, and native ticket outputs. V1 remains an explicit compatibility baseline in `contracts/v1`; the v2 executor does not reinterpret it. The Brazil v2 example bundles scheduler, replay and update-draft sections into one ticket. Separate work may use up to eight tickets.
 
-The UI/service now exist in `apps/ripple`. Implement the `/investigate` and `/revalidate` agent boundary documented in [the runtime guide](../apps/ripple/README.md#agent-boundary). The UI owns sealed plan identities, owner revisions, authentication, receipts and native ticket execution; the agent owns retrieval, exact source validation, freshness/access revalidation and task decomposition. Older issue-creation guidance below describes the earlier design and is superseded for executable actions by `contracts/investigation.ts` v2.
+The UI/service and authenticated `/investigate` and `/revalidate` agent now exist in `apps/ripple`. The live-read browser demo connects the outcome-led retrieval/planner to simulated ticket execution; see [the runtime guide](../apps/ripple/README.md#agent-boundary). The UI owns sealed plan identities, owner revisions, authentication, receipts and native ticket execution; the agent owns retrieval, exact source validation, freshness/access revalidation and task decomposition. Older issue-creation guidance below describes the earlier design and is superseded for executable actions by `contracts/investigation.ts` v2.
 
 ---
 
 # Ripple: agent build starting point
 
 Updated 10 October 2026. This is a proposed implementation over the imported data, not a claim that these agents or tools already exist. See [the data/integration handoff](data-and-integrations.md) for scope, IDs, setup, and constraints.
+
+The first read-only retrieval-to-preview slice is now implemented and live-verified;
+see [investigation implementation](investigation-implementation.md) for run commands,
+validation, actual MCP tool gaps and the UI/executor handoff. Execution and a deployed
+Computer skill remain separate work.
 
 ## First agent and demonstration
 

@@ -46,6 +46,23 @@ test('native presentation investigates, revises owner, opens every citation and 
   assert.ok(JSON.stringify(resumed).includes('Execution result'));
   assert.ok(JSON.stringify(resumed).includes('Start a fresh review'));
 });
+test('live local preview labels simulated approval and supplies the current owner roster', async t => {
+  const s = await setup(t);
+  const controller = new Controller(s.service, 'http://127.0.0.1:8788', 'live');
+  const intake = flatten((await controller.initialize(auth, s.issue)).snaps).find(n => n.type === 'form')!;
+  const ui = await controller.action(auth, { action_id: intake.action_id, block_id: intake.block_id,
+    value: { outcome: { value: 'Restore Brazil subscription renewals without double billing' }, constraints: { value: '' } } }, s.issue);
+  assert.ok(JSON.stringify(ui.snaps).includes('Live DevRev reads; simulated ticket creation'));
+  assert.ok(JSON.stringify(ui.snaps).includes('Approve & simulate 1 ticket'));
+  assert.deepEqual('preview_owners' in ui ? ui.preview_owners : [], await s.native.owners());
+  const approval = flatten(ui.snaps).find(n => String(n.action_id).startsWith('approve:'))!;
+  const failed = await controller.action(auth, { action_id: approval.action_id, block_id: approval.block_id, value: 'approve' }, s.issue);
+  assert.ok(JSON.stringify(failed.snaps).includes('Review needed'));
+  const refresh = flatten(failed.snaps).find(n => String(n.action_id).startsWith('refresh:'))!;
+  const refreshed = await controller.action(auth, { action_id: refresh.action_id, block_id: refresh.block_id, value: 'refresh' }, s.issue);
+  assert.ok(!JSON.stringify(refreshed.snaps).includes('Review needed'));
+  assert.equal(s.native.creates, 0);
+});
 test('graph grants expire, cannot cross users, and become invalid after owner revisions', async t => {
   const s = await setup(t), issue = await s.native.issue(auth, s.issue);
   const response = await s.service.investigate(auth, { schema_version: '2.0', request_id: randomUUID(), outcome: 'Brazil renewal review', constraints: [],

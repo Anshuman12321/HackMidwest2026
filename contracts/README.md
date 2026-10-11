@@ -2,7 +2,7 @@
 
 This is the shared boundary between the investigation agent, the review UI, and the DevRev executor. It is implemented as strict Zod schemas with inferred TypeScript types in [investigation.ts](investigation.ts). Both developers import those definitions. The agent returns JSON that must pass validation before the UI displays a plan.
 
-The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The native UI, authenticated service, storage and executor are implemented in [apps/ripple](../apps/ripple/README.md). A deployed agent and Team01 installation remain integration gates. These contract files make no remote writes. V1 is preserved under [v1/](v1/) and is not accepted by the v2 executor.
+The first vertical workflow starts with **“Restore Brazil subscription renewals without double billing.”** Its evidence comes from the imported Maple Payments dataset. The native UI, authenticated service, storage and executor are implemented in [apps/ripple](../apps/ripple/README.md). The read-only investigation planner and retrieval adapter are described in [the implementation handoff](../docs/investigation-implementation.md). These contract files make no remote writes. V1 is preserved under [v1/](v1/) and is not accepted by the v2 executor.
 
 ## Three operations
 

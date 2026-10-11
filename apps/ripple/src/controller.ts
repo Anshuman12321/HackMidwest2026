@@ -9,8 +9,8 @@ import { RippleService, failure } from './service.ts';
 import { graphData } from './graph.ts';
 const Action = z.object({ action_id: z.string().max(200), block_id: z.string().max(6000), value: z.unknown() });
 export class Controller {
-  service: RippleService; publicUrl: string; preview: boolean;
-  constructor(service: RippleService, publicUrl: string, preview = false) { this.service = service; this.publicUrl = publicUrl; this.preview = preview; }
+  service: RippleService; publicUrl: string; preview: boolean | 'live';
+  constructor(service: RippleService, publicUrl: string, preview: boolean | 'live' = false) { this.service = service; this.publicUrl = publicUrl; this.preview = preview; }
   async render(auth: Auth, state: UIState, response?: InvestigationResponse, plan?: Plan, error?: string) {
     if (response?.action_graph) state = bindState(state, response);
     const signedState = this.service.secrets.sign(state, 'ui');
@@ -18,7 +18,8 @@ export class Controller {
       planId: state.planId, digest: state.digest, view: state.view, expires: Date.now() + 5 * 60_000 }, 'graph') : null;
     const imageUrl = imageToken ? new URL(`/graph/${imageToken}.png`, this.publicUrl).href : undefined;
     const owners = response ? await this.service.native.owners(auth, '') : [];
-    return renderBrief({ state, signedState, response, plan, imageUrl, owners, error, preview: this.preview });
+    const payload = renderBrief({ state, signedState, response, plan, imageUrl, owners, error, preview: this.preview });
+    return this.preview ? { ...payload, preview_owners: owners } : payload;
   }
   async initialize(auth: Auth, id: string) {
     const issue = await this.service.native.issue(auth, id);

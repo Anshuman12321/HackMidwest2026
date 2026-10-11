@@ -226,6 +226,7 @@ __marimo__/
 node_modules/
 apps/ripple/snap-in/build.tar.gz
 apps/ripple/.preview-data/
+.local/
 
 # Buildless Site source is intentionally versioned
 !sites/ripple-demo/dist/
