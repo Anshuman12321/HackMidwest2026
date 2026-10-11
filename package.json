@@ -1,0 +1,33 @@
+{
+  "name": "ripple",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "contracts"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "node --test contracts/investigation.test.ts contracts/v1/investigation.test.ts apps/ripple/src/*.test.ts",
+    "fixtures": "node contracts/build-examples.ts",
+    "preview": "node apps/ripple/src/preview.ts",
+    "start": "node apps/ripple/src/main.ts",
+    "migrate": "node apps/ripple/src/migrate.ts",
+    "build:snap-in": "node apps/ripple/snap-in/build.ts"
+  },
+  "dependencies": {
+    "pg": "8.16.3",
+    "sharp": "0.35.5",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "@types/node": "26.6.5",
+    "@types/pg": "8.15.6",
+    "esbuild": "0.25.12",
+    "typescript": "7.0.2"
+  }
+}

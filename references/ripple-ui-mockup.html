@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — UI mockup</title>
+<style>
+  :root {
+    --white:#FFFFFF; --grey:#F4F4F4; --dark:#161616; --yellow:#FFE600;
+    --line:#E3E3E3; --mut:#6B6B6B; --green:#128A4B; --red:#C8341F; --amber:#B6820A;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Chip Text', system-ui, sans-serif; background:var(--grey); color:var(--dark); -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,h4 { font-family:'Chip Display', system-ui, sans-serif; letter-spacing:-0.01em; }
+  .mono { font-family:'Chip Mono', ui-monospace, monospace; text-transform:uppercase; letter-spacing:0.04em; }
+
+  /* top bar */
+  .topbar { background:var(--dark); color:var(--white); display:flex; align-items:center; justify-content:space-between; padding:14px 28px; position:sticky; top:0; z-index:50; }
+  .topbar svg { height:22px; width:auto; }
+  .topbar .logo path { fill:#fff; }
+  .brandmark { display:flex; align-items:center; gap:12px; }
+  .pill { border-radius:9999px; border:none; cursor:pointer; font-family:'Chip Text',system-ui,sans-serif; font-weight:600; font-size:14px; padding:9px 20px; }
+  .pill-y { background:var(--yellow); color:var(--dark); }
+  .pill-o { background:transparent; color:var(--white); border:1px solid #444; }
+
+  /* nav tabs */
+  .tabs { display:flex; gap:4px; background:var(--white); padding:10px 24px; border-bottom:1px solid var(--line); position:sticky; top:50px; z-index:40; overflow-x:auto; }
+  .tab { font-size:13px; font-weight:600; color:var(--mut); background:transparent; border:none; padding:9px 15px; border-radius:9999px; cursor:pointer; white-space:nowrap; }
+  .tab:hover { background:var(--grey); }
+  .tab.active { background:var(--dark); color:var(--white); }
+
+  .wrap { max-width:1180px; margin:0 auto; padding:28px 24px 80px; }
+  .screen { display:none; }
+  .screen.active { display:block; }
+
+  .screenhead { margin-bottom:20px; }
+  .screenhead .eyebrow { font-size:12px; color:var(--mut); margin-bottom:8px; }
+  .screenhead h2 { font-size:30px; }
+  .screenhead p { color:var(--mut); font-size:15px; margin-top:8px; max-width:720px; }
+
+  .card { background:var(--white); border:1px solid var(--line); border-radius:16px; padding:22px; }
+  .card + .card { margin-top:16px; }
+  .grid2 { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:860px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+
+  .lbl { font-size:11px; color:var(--mut); margin-bottom:10px; }
+  .sectitle { font-size:18px; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .chip { display:inline-block; font-size:11px; font-weight:600; padding:3px 10px; border-radius:9999px; }
+  .chip-g { background:#E4F5EB; color:var(--green); }
+  .chip-a { background:#FBF2D8; color:var(--amber); }
+  .chip-r { background:#FBE3DF; color:var(--red); }
+  .chip-d { background:var(--grey); color:var(--dark); border:1px solid var(--line); }
+
+  /* mock input */
+  .mockinput { border:1px solid var(--line); border-radius:12px; padding:16px 18px; color:var(--mut); font-size:15px; background:#FAFAFA; }
+  .mockinput.big { min-height:92px; }
+
+  .evidence { border:1px solid var(--line); border-left:3px solid var(--dark); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .evidence .id { font-size:11px; font-weight:600; }
+  .evidence p { font-size:13px; color:#333; margin-top:5px; }
+
+  .kv { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .kv:last-child { border-bottom:none; }
+  .kv span:first-child { color:var(--mut); }
+
+  /* graph */
+  .graphwrap { position:relative; background:#FAFAFA; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .legend { position:absolute; top:12px; right:12px; background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:11px; }
+  .legend div { display:flex; align-items:center; gap:7px; margin:3px 0; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  /* task rows */
+  .task { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px; display:grid; grid-template-columns:28px 1fr auto; gap:14px; align-items:start; }
+  .task .num { width:26px; height:26px; border-radius:8px; background:var(--dark); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:'Chip Display',sans-serif; }
+  .task h4 { font-size:15px; margin-bottom:5px; }
+  .task .meta { font-size:12px; color:var(--mut); line-height:1.7; }
+  .task .meta b { color:var(--dark); font-weight:600; }
+
+  .flowbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--dark); color:#fff; border-radius:12px; padding:14px 18px; margin-bottom:22px; font-size:13px; }
+  .flowbar .step { padding:5px 12px; border-radius:9999px; background:#262626; }
+  .flowbar .step.on { background:var(--yellow); color:var(--dark); font-weight:600; }
+  .flowbar .arr { color:#666; }
+
+  .toolrow { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .tooltag { font-size:11px; font-family:'Chip Mono',monospace; text-transform:uppercase; letter-spacing:.03em; background:var(--grey); border:1px solid var(--line); border-radius:7px; padding:4px 9px; }
+
+  .banner { background:var(--yellow); color:var(--dark); border-radius:12px; padding:14px 18px; font-size:14px; font-weight:500; margin-bottom:18px; }
+  .footnote { color:var(--mut); font-size:12px; margin-top:26px; text-align:center; }
+  .splitactions { display:flex; gap:10px; margin-top:8px; }
+  .pill-dk { background:var(--dark); color:#fff; }
+  .pill-gh { background:transparent; color:var(--dark); border:1px solid var(--line); }
+  .confbar { height:6px; border-radius:9999px; background:var(--line); overflow:hidden; margin-top:6px; }
+  .confbar > i { display:block; height:100%; background:var(--amber); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brandmark">
+      <svg class="logo" viewBox="0 0 293 53" xmlns="http://www.w3.org/2000/svg" aria-label="Computer by DevRev">
+        <path d="M280.914 41.9213H274.482V8.44531H280.914V18.4285C282.241 11.3126 285.129 8.44531 290.822 8.44531H293V15.4772H289.89C283.513 15.4772 280.914 18.0171 280.914 24.2387V41.9213Z"/>
+        <path d="M225.863 42.9763C223.542 42.9763 221.569 42.3088 219.982 40.9822C218.084 39.3953 216.8 36.8596 216.258 33.6397L213.256 15.7724L208.353 16.5952L207.421 11.0579L210.288 10.5751C210.83 10.4827 211.308 10.1847 211.627 9.73968C211.946 9.29048 212.072 8.74472 211.98 8.20316L210.784 1.07472L217.173 0L217.962 4.68512C218.29 6.64565 217.4 7.99745 216.598 8.7867C216.166 9.21071 215.716 9.51718 215.372 9.72289L229.302 7.38452L230.234 12.9219L219.65 14.7019L222.509 31.7169C222.824 33.6019 223.428 34.8865 224.348 35.6464C225.313 36.444 226.653 36.6833 228.445 36.3811C230.28 36.0746 231.737 35.4323 233.319 34.6892L233.428 34.6388L235.229 40.3903L235.15 40.4323C232.853 41.5952 231.149 42.2794 228.206 42.7706C227.391 42.9091 226.615 42.9763 225.872 42.9763H225.863Z"/>
+        <path d="M143.132 52.6199H136.646V8.4471H143.132V17.9475C144.727 10.9576 148.963 7.41016 155.718 7.41016C164.584 7.41016 169.668 13.8627 169.668 25.1095C169.668 36.3563 164.479 43.0272 155.789 43.0272C148.849 43.0272 144.588 39.4461 143.132 32.3807V52.6199ZM153.409 13.3211C146.973 13.3211 143.132 17.6494 143.132 24.8954V25.3992C143.132 32.5612 147.166 37.1917 153.409 37.1917C159.651 37.1917 163.253 32.9013 163.253 25.1095C163.253 17.3178 159.941 13.3169 153.409 13.3169V13.3211Z"/>
+        <path d="M130.932 41.9257H124.5V21.9257C124.5 18.6806 123.472 13.2356 116.595 13.2356C110.928 13.2356 107.544 16.485 107.544 21.9257V41.9257H101.112V21.9257C101.112 18.6806 100.084 13.2356 93.2073 13.2356C87.5399 13.2356 84.1562 16.485 84.1562 21.9257V41.9257H77.7246V8.45392H84.1562V16.7284C85.6465 10.6034 89.6557 7.375 95.7808 7.375C102.565 7.375 106.57 10.935 107.372 17.673C108.552 10.7419 112.363 7.375 119.022 7.375C124.454 7.375 130.928 9.6252 130.928 20.3514V41.9257H130.932Z"/>
+        <path d="M58.2197 42.9328C55.7134 43.2519 52.9846 42.979 50.1172 42.068C45.1257 40.4853 41.4775 37.5928 39.5673 33.7053C37.674 29.8431 37.5312 25.0908 39.1559 19.9565C40.768 14.8683 43.6731 11.111 47.5648 9.08328C51.3767 7.09756 55.9485 6.85827 60.7847 8.39059C70.621 11.5056 74.8947 20.0866 71.6747 30.2545C69.3153 37.702 64.4413 42.1394 58.2197 42.9328ZM53.9879 13.4997C50.0081 14.0035 46.8637 16.9254 45.3104 21.8288C43.0602 28.9405 45.4993 34.3813 51.8427 36.3922C54.9787 37.3871 57.909 37.131 60.3187 35.6533C62.6697 34.2133 64.4833 31.6525 65.5664 28.2436C67.7159 21.451 65.176 16.0018 58.9292 14.0245C57.1869 13.4745 55.5287 13.3066 53.9921 13.5039L53.9879 13.4997Z"/>
+        <path d="M181.515 29.8091H175.81L174.672 8.45312H182.01L181.519 29.8091H181.515Z"/>
+        <path d="M195.256 8.45312H202.594L201.457 29.8091H195.751L195.26 8.45312H195.256Z"/>
+        <path d="M26.931 29.8029C25.7472 33.4637 23.6103 37.0447 17.5188 37.0447C14.2275 37.0447 11.4861 35.97 9.58853 33.9381C7.66158 31.8768 6.64563 28.8667 6.64563 25.2353C6.64563 21.3815 7.64479 18.3798 9.61372 16.3059C11.4525 14.3706 14.1099 13.3504 17.3005 13.3504C22.3719 13.3504 25.554 15.8063 27.0276 20.8525L27.0486 20.9281H33.6061L33.5851 20.8021C31.9604 11.7551 26.6581 7.35547 17.3719 7.35547C6.82195 7.35547 0 14.3454 0 25.1598C0 30.6803 1.66665 35.2479 4.81525 38.3713C7.89248 41.4234 12.3089 43.0354 17.586 43.0354C26.444 43.0354 31.8051 38.5644 33.5431 29.8029H26.9226H26.931Z"/>
+        <path d="M253.525 7.32031C248.387 7.32031 244.058 8.98697 240.998 12.1356C237.883 15.343 236.237 19.9567 236.237 25.4773C236.237 36.3211 242.891 43.0549 253.601 43.0549C261.615 43.0549 266.972 39.3059 268.932 32.316H262.463C260.868 35.6955 257.971 37.3328 253.601 37.3328C247.266 37.3328 243.45 33.7392 242.841 27.2825H268.995L269.004 27.2279C269.113 25.578 269.151 24.3144 269.151 23.1599C269.151 13.3908 263.164 7.32031 253.529 7.32031H253.525ZM253.307 12.971C259.252 12.971 262.522 15.9853 263.038 21.997H242.942C243.853 16.0692 247.43 12.971 253.307 12.971Z"/>
+      </svg>
+      <span class="mono" style="font-size:12px; color:var(--yellow);">Ripple</span>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="pill pill-o">New analysis</button>
+      <button class="pill pill-y">Approve &amp; create</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-s="intake">1 · Intake</button>
+    <button class="tab" data-s="context">2 · Context Bundle</button>
+    <button class="tab" data-s="impact">3 · Impact graph</button>
+    <button class="tab" data-s="recs">4 · Recommendations</button>
+    <button class="tab" data-s="plan">5 · Action plan &amp; approval</button>
+    <button class="tab" data-s="created">6 · DevRev write-back</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- 1 INTAKE -->
+    <section class="screen active" id="intake">
+      <div class="flowbar">
+        <span class="step on">Problem</span><span class="arr">→</span>
+        <span class="step">Context</span><span class="arr">→</span>
+        <span class="step">Impact</span><span class="arr">→</span>
+        <span class="step">Recommendation</span><span class="arr">→</span>
+        <span class="step">Approval</span><span class="arr">→</span>
+        <span class="step">Action</span>
+      </div>
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 1 · Problem intake</div>
+        <h2>Start from a question or a ticket</h2>
+        <p>The entry point. A user types a plain-language question or picks an existing support issue. One prominent input, one optional record picker, one call-to-action — nothing competes with the question.</p>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="lbl mono">Ask Ripple</div>
+          <div class="mockinput big">Payment API latency is elevated. Can we safely change the payment-worker configuration?</div>
+          <div style="display:flex; gap:10px; margin-top:14px; align-items:center;">
+            <button class="pill pill-y">Reconstruct context</button>
+            <span style="font-size:12px; color:var(--mut);">or attach a record →</span>
+          </div>
+          <div class="toolrow">
+            <span class="tooltag">search.hybrid</span>
+            <span class="tooltag">works.get</span>
+            <span class="tooltag">conversations.list</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="lbl mono">Attach a source record (optional)</div>
+          <div class="evidence"><div class="id mono">TKT-4821</div><p>Checkout failures spiking for enterprise tenants · opened 2d ago</p></div>
+          <div class="evidence"><div class="id mono">INC-142</div><p>Payment latency SEV-2 — recurring · last seen 11d ago</p></div>
+          <div class="kv"><span>Scope</span><span>Payments product</span></div>
+          <div class="kv"><span>Time window</span><span>Last 180 days</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 CONTEXT -->
+    <section class="screen" id="context">
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 2 · Context Bundle</div>
+        <h2>What happened, why, and the evidence for it</h2>
+        <p>A two-column reading view. Left: the reconstructed narrative (what happened → likely rationale → unknowns). Right: structured facts and the people/components involved. Every claim links to a source record.</p>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="sectitle">Reconstructed history <span class="chip chip-d">6 records</span></div>
+          <div class="evidence"><div class="id mono">INC-142 · incident</div><p>Latency spikes on the payment worker occurred twice in the last 6 months, both during renewal batch runs.</p></div>
+          <div class="evidence"><div class="id mono">ENG-381 · issue</div><p>Prior fix throttled the worker; a config change later caused duplicate renewal processing and was reverted.</p></div>
+          <div class="evidence"><div class="id mono">ADR-27 · article</div><p>Design decision: the shared worker config is intentional to preserve ordering guarantees for renewals.</p></div>
+          <div style="margin-top:16px;">
+            <div class="lbl mono">Likely rationale</div>
+            <p style="font-size:14px;">The current configuration was a <b>deliberate choice</b> — a past change to it broke subscription renewals, so the team locked it to protect ordering.</p>
+          </div>
+          <div style="margin-top:16px;">
+            <div class="lbl mono">Unknowns Ripple flagged</div>
+            <p style="font-size:14px; color:var(--amber);">No current queue-depth telemetry is available for the worker. Confidence capped at medium until supplied.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sectitle">Involved</div>
+          <div class="kv"><span>Component</span><span>payment-worker</span></div>
+          <div class="kv"><span>Also consumed by</span><span>checkout, renewals</span></div>
+          <div class="kv"><span>Owning team</span><span>Payments Platform</span></div>
+          <div class="kv"><span>Decision owner</span><span>M. Rao (architect)</span></div>
+          <div class="kv"><span>Related code</span><span>3 commits · 1 PR</span></div>
+          <div class="toolrow">
+            <span class="tooltag">timeline-entries.list</span>
+            <span class="tooltag">parts.get</span>
+            <span class="tooltag">code-changes.list</span>
+            <span class="tooltag">articles.get</span>
+            <span class="tooltag">dev-users.get</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 IMPACT GRAPH -->
+    <section class="screen" id="impact">
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 3 · Impact graph</div>
+        <h2>Changing X affects Y — and here's why</h2>
+        <p>The signature screen. An interactive node-edge graph of the proposed change and everything downstream. Click a node to see the evidence behind that dependency. This is the moment the demo turns on.</p>
+      </div>
+      <div class="card" style="padding:0;">
+        <div class="graphwrap">
+          <svg id="graph" viewBox="0 0 900 420" style="width:100%; display:block;"></svg>
+          <div class="legend">
+            <div><span class="dot" style="background:#161616;"></span> Proposed change</div>
+            <div><span class="dot" style="background:#C8341F;"></span> High-risk dependency</div>
+            <div><span class="dot" style="background:#B6820A;"></span> Needs review</div>
+            <div><span class="dot" style="background:#128A4B;"></span> Safe / informational</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid3" style="margin-top:16px;">
+        <div class="card"><div class="lbl mono">Selected edge</div><h4 style="font-size:15px;">payment-worker → renewals</h4><p style="font-size:13px; color:var(--mut); margin-top:6px;">High risk. A prior config change here caused duplicate renewal billing (ENG-381).</p></div>
+        <div class="card"><div class="lbl mono">Blast radius</div><h4 style="font-size:15px;">2 systems · 1 team · 3 open works</h4><p style="font-size:13px; color:var(--mut); margin-top:6px;">Checkout and renewals both consume the worker.</p></div>
+        <div class="card"><div class="lbl mono">Tools</div><div class="toolrow" style="margin-top:4px;"><span class="tooltag">links.list</span><span class="tooltag">links.create</span><span class="tooltag">parts.list</span><span class="tooltag">works.list</span></div></div>
+      </div>
+    </section>
+
+    <!-- 4 RECOMMENDATIONS -->
+    <section class="screen" id="recs">
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 4 · Recommendations</div>
+        <h2>Every recommendation carries its own proof</h2>
+        <p>Each recommendation is a card with four fixed parts: claim, evidence, confidence, and missing information. This is how Ripple earns trust — validation is a property of the card, not a separate step.</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+          <div>
+            <div class="lbl mono">Recommendation</div>
+            <h3 style="font-size:20px;">Validate queue behaviour before changing the worker config</h3>
+          </div>
+          <span class="chip chip-a">Confidence · Medium</span>
+        </div>
+        <div class="confbar"><i style="width:58%;"></i></div>
+        <div style="margin-top:18px;" class="grid2">
+          <div>
+            <div class="lbl mono">Evidence</div>
+            <div class="evidence"><div class="id mono">INC-142</div><p>Links prior latency spikes to the worker during renewal runs.</p></div>
+            <div class="evidence"><div class="id mono">ENG-381</div><p>Earlier config change caused duplicate renewal processing.</p></div>
+          </div>
+          <div>
+            <div class="lbl mono">Dependencies</div>
+            <p style="font-size:13px; margin-bottom:14px;">Checkout and subscription renewal both consume the worker.</p>
+            <div class="lbl mono">Missing information</div>
+            <p style="font-size:13px; color:var(--amber);">No current queue telemetry — capture before any change.</p>
+          </div>
+        </div>
+        <div class="toolrow"><span class="tooltag">recommendations.get-reply</span><span class="tooltag">recommendations.chat-completions</span></div>
+      </div>
+    </section>
+
+    <!-- 5 PLAN & APPROVAL -->
+    <section class="screen" id="plan">
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 5 · Action plan &amp; approval</div>
+        <h2>Three to five tasks, in order, with evidence attached</h2>
+        <p>The recommendation becomes a reviewable Action Graph: ordered tasks with owner, dependency, evidence and a status. The user approves or rejects per task, then commits the plan.</p>
+      </div>
+      <div class="banner">Nothing is written to DevRev until you approve. Ripple never touches production or deploys code.</div>
+      <div class="card">
+        <div class="task">
+          <div class="num">1</div>
+          <div><h4>Capture payment-worker queue telemetry</h4><div class="meta"><b>Owner:</b> Payments Platform · <b>Depends on:</b> none · <b>Evidence:</b> INC-142 · <b>Fills gap:</b> missing telemetry</div></div>
+          <div><span class="chip chip-g">Approved</span></div>
+        </div>
+        <div class="task">
+          <div class="num">2</div>
+          <div><h4>Reproduce latency against a renewal batch in staging</h4><div class="meta"><b>Owner:</b> QA · <b>Depends on:</b> task 1 · <b>Evidence:</b> ENG-381</div></div>
+          <div><span class="chip chip-a">Needs review</span></div>
+        </div>
+        <div class="task">
+          <div class="num">3</div>
+          <div><h4>Draft config change behind a flag — do not ship</h4><div class="meta"><b>Owner:</b> M. Rao · <b>Depends on:</b> task 2 · <b>Condition:</b> only if renewals unaffected · <b>Evidence:</b> ADR-27</div></div>
+          <div><span class="chip chip-d">Pending</span></div>
+        </div>
+        <div class="splitactions">
+          <button class="pill pill-dk">Approve plan &amp; create in DevRev</button>
+          <button class="pill pill-gh">Reject</button>
+          <button class="pill pill-gh">Edit tasks</button>
+        </div>
+        <div class="toolrow"><span class="tooltag">snap-widgets</span><span class="tooltag">snap-kit-execution</span><span class="tooltag">commands</span><span class="tooltag">link:write</span></div>
+      </div>
+    </section>
+
+    <!-- 6 WRITE-BACK -->
+    <section class="screen" id="created">
+      <div class="screenhead">
+        <div class="eyebrow mono">Screen 6 · DevRev write-back</div>
+        <h2>Approved tasks become real DevRev work items</h2>
+        <p>A confirmation view. The created issues/tasks appear with their new IDs, linked back to each other and to the evidence that justified them. One working write path is enough for the demo.</p>
+      </div>
+      <div class="card">
+        <div class="sectitle">Created in DevRev <span class="chip chip-g">3 work items · linked</span></div>
+        <div class="task"><div class="num">✓</div><div><h4>ISS-5120 · Capture payment-worker queue telemetry</h4><div class="meta">Owner Payments Platform · linked to INC-142 · tag <b>ripple-generated</b></div></div><div><span class="chip chip-g">Open</span></div></div>
+        <div class="task"><div class="num">✓</div><div><h4>ISS-5121 · Reproduce latency in staging</h4><div class="meta">Blocked by ISS-5120 · linked to ENG-381</div></div><div><span class="chip chip-g">Open</span></div></div>
+        <div class="task"><div class="num">✓</div><div><h4>ISS-5122 · Draft config change behind a flag</h4><div class="meta">Blocked by ISS-5121 · conditional · linked to ADR-27</div></div><div><span class="chip chip-g">Open</span></div></div>
+        <div class="toolrow"><span class="tooltag">works.create</span><span class="tooltag">links.create</span><span class="tooltag">timeline-entries.create</span><span class="tooltag">tags</span><span class="tooltag">webhooks</span></div>
+      </div>
+    </section>
+
+    <p class="footnote">Interactive mockup · sample data only · DevRev / Computer brand · click the tabs above to move through all six features.</p>
+  </div>
+
+<script>
+  // tab switching
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.s).classList.add('active');
+  }));
+
+  // impact graph
+  const nodes = [
+    {id:'change', x:150, y:210, label:'payment-worker', sub:'proposed config change', c:'#161616', r:46},
+    {id:'renewals', x:560, y:110, label:'renewals', sub:'duplicate-billing risk', c:'#C8341F', r:40},
+    {id:'checkout', x:560, y:300, label:'checkout', sub:'shared consumer', c:'#B6820A', r:38},
+    {id:'adr', x:780, y:110, label:'ADR-27', sub:'ordering guarantee', c:'#128A4B', r:30},
+    {id:'eng', x:780, y:210, label:'ENG-381', sub:'prior revert', c:'#128A4B', r:30},
+    {id:'inc', x:380, y:360, label:'INC-142', sub:'latency evidence', c:'#128A4B', r:30},
+  ];
+  const edges = [
+    ['change','renewals','high'], ['change','checkout','review'],
+    ['renewals','adr','ok'], ['renewals','eng','ok'], ['change','inc','ok']
+  ];
+  const svg = document.getElementById('graph');
+  const NS='http://www.w3.org/2000/svg';
+  const byId = Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const ecol = {high:'#C8341F', review:'#B6820A', ok:'#BDBDBD'};
+  edges.forEach(([a,b,k])=>{
+    const A=byId[a],B=byId[b];
+    const l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',A.x);l.setAttribute('y1',A.y);l.setAttribute('x2',B.x);l.setAttribute('y2',B.y);
+    l.setAttribute('stroke',ecol[k]);l.setAttribute('stroke-width',k==='high'?3.5:2);
+    if(k!=='high') l.setAttribute('stroke-dasharray','5 5');
+    svg.appendChild(l);
+  });
+  nodes.forEach(n=>{
+    const g=document.createElementNS(NS,'g');
+    const c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',n.r);
+    c.setAttribute('fill',n.c);
+    g.appendChild(c);
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',n.x);t.setAttribute('y',n.y+4);t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#fff');t.setAttribute('font-size','12');t.setAttribute('font-family',"'Chip Display',sans-serif");t.setAttribute('font-weight','600');
+    t.textContent=n.label;
+    g.appendChild(t);
+    const s=document.createElementNS(NS,'text');
+    s.setAttribute('x',n.x);s.setAttribute('y',n.y+n.r+16);s.setAttribute('text-anchor','middle');
+    s.setAttribute('fill','#6B6B6B');s.setAttribute('font-size','11');s.setAttribute('font-family',"'Chip Text',sans-serif");
+    s.textContent=n.sub;
+    g.appendChild(s);
+    svg.appendChild(g);
+  });
+</script>
+</body>
+</html>

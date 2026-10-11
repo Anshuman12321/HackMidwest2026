@@ -1,0 +1,67 @@
+version: "2"
+name: Ripple
+description: Cited issue investigations and reviewed internal execution tickets.
+developer_keyrings:
+  - name: ripple_bridge_secret
+    display_name: Ripple service bridge secret
+    description: Authenticate server-to-server calls to the Ripple review service.
+inputs:
+  organization:
+    - name: ripple_service_url
+      display_name: Ripple service URL
+      description: HTTPS origin of the deployed Ripple service.
+      field_type: text
+service_account:
+  display_name: Ripple
+  scopes:
+    self: []
+    impersonate:
+      - act_as: all_devusers
+        scopes:
+          - scope: issue:read
+            optional: false
+            reason: Read the issue brief and cited issues as the current user.
+          - scope: ticket:write
+            optional: false
+            reason: Read reports and create only approved internal execution tickets.
+          - scope: capability:read
+            optional: false
+            reason: Read the subscription capability and verify ticket destinations.
+          - scope: product:read
+            optional: false
+            reason: Verify reviewed product context and ticket destinations.
+          - scope: feature:read
+            optional: false
+            reason: Verify reviewed feature context and ticket destinations.
+          - scope: enhancement:read
+            optional: false
+            reason: Verify reviewed enhancement context and ticket destinations.
+          - scope: opportunity:read
+            optional: false
+            reason: Recheck access to cited business-impact evidence.
+          - scope: account:read
+            optional: false
+            reason: Read cited customer accounts.
+          - scope: dev_user:read
+            optional: false
+            reason: Resolve the current actor and verify active owners.
+          - scope: article:read
+            optional: false
+            reason: Recheck access to cited articles.
+functions:
+  - name: ripple_initialize
+    description: Restore the authenticated issue investigation brief.
+  - name: ripple_action
+    description: Process selections, revisions and exact-plan decisions.
+snap_kit_actions:
+  - name: ripple_review
+    description: Ripple investigation review.
+    function: ripple_action
+snap_components:
+  - name: ripple_issue_brief
+    display_name: Ripple
+    description: Investigate this issue and approve execution tickets.
+    surface: issue
+    initializer: ripple_initialize
+    snap_kit_action_name: ripple_review
+    snap_kit_body: { snaps: [] }

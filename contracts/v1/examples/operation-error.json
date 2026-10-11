@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "operation": "decide_plan",
+  "request_id": null,
+  "plan_id": "00000000-0000-4000-8000-000000000003",
+  "error": {
+    "code": "stale_plan",
+    "message": "The plan changed. Review the current revision.",
+    "retry": "never"
+  }
+}

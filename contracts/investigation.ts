@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Canonical wire contract. All fields are required; unavailable values are null.
-export const VERSION = '1.0' as const;
+export const VERSION = '2.0' as const;
 const Version = z.literal(VERSION);
 const Id = z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/);
 const Text = z.string().trim().min(1).max(4000);
@@ -85,10 +85,10 @@ export const ContextBundleSchema = z.strictObject({
 export const TaskSchema = z.strictObject({
   action_id: Id,
   action_key: z.string().min(1).max(240), // Stable incident + purpose, not a random run ID.
-  operation: z.literal('create_issue'), // v1 does not send messages or change production.
+  operation: z.literal('create_ticket'), // Approved internal execution work only.
+  visibility: z.literal('internal'),
   title: z.string().trim().min(1).max(200),
   body_markdown: Text,
-  priority: z.enum(['p0', 'p1', 'p2', 'p3']),
   part_entity_id: Id,
   owner_id: UserDon.nullable(), // Current authorized DevRev user; never a source USER-* ID.
   context_entity_ids: Refs,
@@ -282,7 +282,7 @@ export const ExecutionResultSchema = ExecutionResultShape.superRefine((r, ctx) =
   for (const item of r.results) {
     const ok = ['created', 'reused'].includes(item.status);
     if (ok !== Boolean(item.native) || ok === Boolean(item.error)) fail('Native IDs exist only for successful actions; other outcomes need errors');
-    if (item.native && !/:issue\/[^/]+$/.test(item.native.id)) fail('v1 task outputs must be native issues');
+    if (item.native && !/:ticket\/[^/]+$/.test(item.native.id)) fail('v2 task outputs must be native tickets');
     if (item.status === 'uncertain' && item.error?.retry !== 'reconcile_first') fail('Uncertain writes require reconciliation');
   }
 });

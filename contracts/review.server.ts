@@ -4,7 +4,7 @@ import {
   type InvestigationResponse, type PlanDecisionRequest, type RevisePlanRequest, type ExecutionResult,
 } from './investigation.ts';
 
-// Contract v1 sorted-key JSON, UTF-8, no whitespace. Arrays retain their order.
+// Contract sorted-key JSON, UTF-8, no whitespace. Arrays retain their order.
 // Only parsed contract data is permitted: no undefined, non-finite numbers, or Date objects.
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);

@@ -224,6 +224,8 @@ __marimo__/
 !.env.example
 .sites-runtime/
 node_modules/
+apps/ripple/snap-in/build.tar.gz
+apps/ripple/.preview-data/
 
 # Buildless Site source is intentionally versioned
 !sites/ripple-demo/dist/

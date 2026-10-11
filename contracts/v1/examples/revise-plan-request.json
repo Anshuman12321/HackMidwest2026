@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "plan_id": "00000000-0000-4000-8000-000000000003",
+  "expected_revision": 1,
+  "owner_assignments": [
+    {
+      "action_id": "task-scheduler",
+      "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6"
+    },
+    {
+      "action_id": "task-replay",
+      "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6"
+    },
+    {
+      "action_id": "task-customer-drafts",
+      "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6"
+    }
+  ]
+}

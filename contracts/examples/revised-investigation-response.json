@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "request_id": "00000000-0000-4000-8000-000000000001",
   "investigation_id": "00000000-0000-4000-8000-000000000002",
   "generated_at": "2026-10-10T22:54:31.185524+00:00",
@@ -567,62 +567,19 @@
   "action_graph": {
     "plan_id": "00000000-0000-4000-8000-000000000003",
     "revision": 2,
-    "plan_digest": "31d9333f3639d2b6d6534902dc6a8bd4eba1400d8c6d00983655d85056b82946",
+    "plan_digest": "d59afe2bbe4ee582ad3290eaa4faf46b63d3b53d4912bc60f13b63f7028a24a6",
     "expires_at": "2026-10-11T22:54:31Z",
     "existing_work_entity_ids": [
       "entity-iss-031"
     ],
     "actions": [
       {
-        "action_id": "task-scheduler",
-        "action_key": "ripple/maple/ISS-031/scheduler-check",
-        "operation": "create_issue",
-        "title": "Verify Brazil renewal scheduler and retry behavior",
-        "body_markdown": "Investigate missing renewal attempts, retry jobs, and failure webhooks using ISS-42 and the three cited customer reports.\n\nAcceptance checks:\n- Record queue observations or state that runtime access is unavailable\n- Distinguish scheduled renewal failure from manual charge behavior\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)",
-        "priority": "p1",
-        "part_entity_id": "entity-subscriptions",
-        "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6",
-        "context_entity_ids": [
-          "entity-iss-031"
-        ],
-        "evidence_ids": [
-          "evidence-iss-031",
-          "evidence-tkt-124",
-          "evidence-tkt-125",
-          "evidence-tkt-126"
-        ],
-        "acceptance_checks": [
-          "Record queue observations or state that runtime access is unavailable",
-          "Distinguish scheduled renewal failure from manual charge behavior"
-        ]
-      },
-      {
-        "action_id": "task-replay",
-        "action_key": "ripple/maple/ISS-031/replay-safety",
-        "operation": "create_issue",
-        "title": "Validate rerouting and missed-renewal replay safety",
-        "body_markdown": "Review the US-East routing proposal in ISS-42. Use scheduler findings to define idempotency, no-double-billing, and webhook checks before any production change.\n\nAcceptance checks:\n- Define a no-double-billing test\n- Define replay and webhook checks; do not claim that they passed\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)",
-        "priority": "p1",
-        "part_entity_id": "entity-subscriptions",
-        "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6",
-        "context_entity_ids": [
-          "entity-iss-031"
-        ],
-        "evidence_ids": [
-          "evidence-iss-031"
-        ],
-        "acceptance_checks": [
-          "Define a no-double-billing test",
-          "Define replay and webhook checks; do not claim that they passed"
-        ]
-      },
-      {
-        "action_id": "task-customer-drafts",
-        "action_key": "ripple/maple/ISS-031/customer-update-drafts",
-        "operation": "create_issue",
-        "title": "Prepare cited Brazil renewal updates for affected accounts",
-        "body_markdown": "Prepare drafts for TechFlow, GlobalCommerce, and GlobalMart. Include confirmed symptoms, remaining gaps, and the next investigation step. Do not send messages.\n\nAcceptance checks:\n- Link each draft to its customer report\n- Keep unverified ETAs and recovery claims out of the drafts\n\nEvidence:\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)",
-        "priority": "p1",
+        "action_id": "task-brazil-execution",
+        "action_key": "ripple/maple/ISS-031/brazil-execution",
+        "operation": "create_ticket",
+        "visibility": "internal",
+        "title": "Investigate Brazil renewals and define safe recovery",
+        "body_markdown": "## 1. Verify Brazil renewal scheduler and retry behavior\n\nInvestigate missing renewal attempts, retry jobs, and failure webhooks using ISS-42 and the three cited customer reports.\n\nAcceptance checks:\n- Record queue observations or state that runtime access is unavailable\n- Distinguish scheduled renewal failure from manual charge behavior\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)\n\n## 2. Validate rerouting and missed-renewal replay safety\n\nReview the US-East routing proposal in ISS-42. Use scheduler findings to define idempotency, no-double-billing, and webhook checks before any production change.\n\nAcceptance checks:\n- Define a no-double-billing test\n- Define replay and webhook checks; do not claim that they passed\n\nEvidence:\n- ISS-031 / ISS-42 (evidence-iss-031)\n\n## 3. Prepare cited Brazil renewal updates for affected accounts\n\nPrepare drafts for TechFlow, GlobalCommerce, and GlobalMart. Include confirmed symptoms, remaining gaps, and the next investigation step. Do not send messages.\n\nAcceptance checks:\n- Link each draft to its customer report\n- Keep unverified ETAs and recovery claims out of the drafts\n\nEvidence:\n- TKT-124 / TKT-50 (evidence-tkt-124)\n- TKT-125 / TKT-52 (evidence-tkt-125)\n- TKT-126 / TKT-53 (evidence-tkt-126)",
         "part_entity_id": "entity-subscriptions",
         "owner_id": "don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6",
         "context_entity_ids": [
@@ -632,22 +589,21 @@
           "entity-acc-005"
         ],
         "evidence_ids": [
+          "evidence-iss-031",
           "evidence-tkt-124",
           "evidence-tkt-125",
           "evidence-tkt-126"
         ],
         "acceptance_checks": [
+          "Record queue observations or state that runtime access is unavailable",
+          "Distinguish scheduled renewal failure from manual charge behavior",
+          "Define a no-double-billing test",
+          "Define replay and webhook checks; do not claim that they passed",
           "Link each draft to its customer report",
           "Keep unverified ETAs and recovery claims out of the drafts"
         ]
       }
     ],
-    "dependencies": [
-      {
-        "prerequisite_action_id": "task-scheduler",
-        "dependent_action_id": "task-replay",
-        "reason": "Use scheduler findings when defining replay safety checks."
-      }
-    ]
+    "dependencies": []
   }
 }

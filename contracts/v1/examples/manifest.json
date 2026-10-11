@@ -1,0 +1,8 @@
+{
+  "fixture_only": true,
+  "archive_sha256": "24d6d134067ffc763c953fab8ec28022c98bb4da11aa0e4456798d7f9bb656bc",
+  "snapshot_captured_at": "2026-10-10T22:54:31.185524+00:00",
+  "proposed_actions_are_generated": true,
+  "assigned_native_owner_is_an_example_not_authorization": true,
+  "evidence_sha256": "5b4a9817e3ed4fcdfba3b225ac73f76d3592c777cf853ffd3c94701215211eda"
+}

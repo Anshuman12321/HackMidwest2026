@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — native DevRev snap-in</title>
+<style>
+  :root{
+    --white:#FFFFFF; --grey:#F4F4F4; --dark:#161616; --yellow:#FFE600;
+    --line:#E7E7E7; --mut:#737373; --green:#128A4B; --red:#C8341F; --amber:#B6820A;
+    --nav:#111111; --panel:#FBFBFB;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Chip Text',system-ui,sans-serif; background:var(--grey); color:var(--dark); -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{font-family:'Chip Display',system-ui,sans-serif; letter-spacing:-0.01em;}
+  .mono{font-family:'Chip Mono',ui-monospace,monospace; text-transform:uppercase; letter-spacing:0.04em;}
+
+  /* ===== DevRev app shell ===== */
+  .app{display:grid; grid-template-columns:216px 1fr 440px; height:100vh; overflow:hidden;}
+
+  /* left nav */
+  .nav{background:var(--nav); color:#C9C9C9; padding:16px 12px; display:flex; flex-direction:column; gap:4px; overflow:hidden;}
+  .nav .wm{display:flex; align-items:center; gap:8px; padding:4px 8px 16px;}
+  .nav .wm svg{height:16px;}
+  .nav .wm svg path{fill:#fff;}
+  .nav .grp{font-size:10px; color:#6E6E6E; padding:14px 10px 6px;}
+  .nav a{display:flex; align-items:center; gap:9px; font-size:13px; color:#C9C9C9; text-decoration:none; padding:7px 10px; border-radius:8px;}
+  .nav a:hover{background:#1E1E1E;}
+  .nav a.on{background:#262626; color:#fff;}
+  .nav .ic{width:15px; height:15px; border-radius:4px; background:#3A3A3A; display:inline-block;}
+  .nav a.on .ic{background:var(--yellow);}
+
+  /* center record pane */
+  .main{background:var(--white); overflow-y:auto; border-right:1px solid var(--line);}
+  .crumb{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--mut); padding:14px 24px; border-bottom:1px solid var(--line);}
+  .rechead{padding:20px 24px 16px;}
+  .rechead .idrow{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .rechead .idrow .mono{font-size:12px; color:var(--mut);}
+  .rechead h1{font-size:24px; margin-bottom:14px;}
+  .metastrip{display:flex; gap:22px; flex-wrap:wrap; font-size:12px; color:var(--mut); border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0; margin:0 24px;}
+  .metastrip b{display:block; color:var(--dark); font-size:13px; font-weight:600; margin-top:3px; font-family:'Chip Text';}
+  .chip{display:inline-block; font-size:11px; font-weight:600; padding:3px 10px; border-radius:9999px;}
+  .chip-g{background:#E4F5EB; color:var(--green);} .chip-a{background:#FBF2D8; color:var(--amber);}
+  .chip-r{background:#FBE3DF; color:var(--red);} .chip-d{background:var(--grey); color:var(--dark); border:1px solid var(--line);}
+  .chip-dk{background:var(--dark); color:#fff;}
+
+  .tl{padding:18px 24px;}
+  .tl .lbl{font-size:11px; color:var(--mut); margin-bottom:14px;}
+  .tlitem{display:grid; grid-template-columns:30px 1fr; gap:12px; margin-bottom:18px;}
+  .tlitem .av{width:28px; height:28px; border-radius:50%; background:var(--grey); border:1px solid var(--line); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;}
+  .tlitem .av.rip{background:var(--yellow);}
+  .tlitem .bod{font-size:13px; color:#333;}
+  .tlitem .who{font-size:12px; margin-bottom:3px;} .tlitem .who b{font-weight:600;} .tlitem .who span{color:var(--mut);}
+
+  /* ===== Ripple snap-in panel (right side) ===== */
+  .panel{background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; overflow:hidden;}
+  .panelhead{background:var(--dark); color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;}
+  .panelhead .l{display:flex; align-items:center; gap:9px;}
+  .panelhead .badge{width:22px; height:22px; border-radius:6px; background:var(--yellow); color:var(--dark); font-family:'Chip Display'; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;}
+  .panelhead .ttl{font-size:14px; font-weight:600; font-family:'Chip Display';}
+  .panelhead .sub{font-size:10px; color:#9A9A9A;}
+  .panelbody{overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px;}
+
+  /* snap kit card look */
+  .snap{background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .snap .top{padding:12px 14px 0;}
+  .snap .pad{padding:12px 14px;}
+  .snap .foot{border-top:1px solid var(--line); padding:10px 14px; display:flex; gap:8px; background:#FCFCFC;}
+  .snap .eyebrow{font-size:10px; color:var(--mut); margin-bottom:6px;}
+  .snap h3{font-size:15px; margin-bottom:4px;}
+  .snap h4{font-size:13px; margin-bottom:4px;}
+  .snap p{font-size:12px; color:#444; line-height:1.5;}
+  .divider{height:1px; background:var(--line); margin:12px 0;}
+
+  .pill{border-radius:9999px; border:none; cursor:pointer; font-family:'Chip Text'; font-weight:600; font-size:12px; padding:7px 15px;}
+  .pill-y{background:var(--yellow); color:var(--dark);}
+  .pill-dk{background:var(--dark); color:#fff;}
+  .pill-gh{background:transparent; color:var(--dark); border:1px solid var(--line);}
+  .pill-sm{font-size:11px; padding:5px 11px;}
+
+  .ev{border:1px solid var(--line); border-left:3px solid var(--dark); border-radius:8px; padding:9px 11px; margin-top:8px;}
+  .ev .id{font-size:10px; font-weight:700;}
+  .ev p{font-size:11.5px; color:#444; margin-top:3px;}
+
+  .kv{display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:12px;}
+  .kv:last-child{border-bottom:none;} .kv span:first-child{color:var(--mut);}
+
+  .conf{height:5px; border-radius:9999px; background:var(--line); overflow:hidden; margin:8px 0 2px;}
+  .conf > i{display:block; height:100%; background:var(--amber); width:58%;}
+
+  .task{display:grid; grid-template-columns:22px 1fr auto; gap:10px; align-items:start; padding:10px 0; border-bottom:1px solid var(--line);}
+  .task:last-child{border-bottom:none;}
+  .task .num{width:20px; height:20px; border-radius:6px; background:var(--dark); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:'Chip Display';}
+  .task h4{font-size:12.5px; margin-bottom:3px;} .task .m{font-size:10.5px; color:var(--mut); line-height:1.5;} .task .m b{color:var(--dark);}
+
+  /* mini graph */
+  .ggwrap{background:#FAFAFA; border-radius:8px; margin-top:4px;}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; font-size:10px; color:var(--mut); padding:8px 2px 0;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;} .legend i{width:9px; height:9px; border-radius:3px; display:inline-block;}
+
+  .stepper{display:flex; align-items:center; gap:5px; font-size:10px; color:#9A9A9A; padding:10px 14px; background:#fff; border:1px solid var(--line); border-radius:10px;}
+  .stepper b{color:var(--dark);} .stepper .on2{background:var(--yellow); color:var(--dark); padding:2px 7px; border-radius:9999px; font-weight:600;}
+
+  .banner{background:#FFFBE6; border:1px solid #F3E08A; color:#7A5E00; border-radius:10px; padding:10px 12px; font-size:11.5px;}
+  .reply{border:1px dashed var(--line); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--mut);}
+</style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- LEFT NAV -->
+    <aside class="nav">
+      <div class="wm">
+        <svg viewBox="0 0 293 53" xmlns="http://www.w3.org/2000/svg" aria-label="DevRev">
+          <path d="M280.914 41.9213H274.482V8.44531H280.914V18.4285C282.241 11.3126 285.129 8.44531 290.822 8.44531H293V15.4772H289.89C283.513 15.4772 280.914 18.0171 280.914 24.2387V41.9213Z"/>
+          <path d="M225.863 42.9763C223.542 42.9763 221.569 42.3088 219.982 40.9822C218.084 39.3953 216.8 36.8596 216.258 33.6397L213.256 15.7724L208.353 16.5952L207.421 11.0579L210.288 10.5751C210.83 10.4827 211.308 10.1847 211.627 9.73968C211.946 9.29048 212.072 8.74472 211.98 8.20316L210.784 1.07472L217.173 0L217.962 4.68512C218.29 6.64565 217.4 7.99745 216.598 8.7867C216.166 9.21071 215.716 9.51718 215.372 9.72289L229.302 7.38452L230.234 12.9219L219.65 14.7019L222.509 31.7169C222.824 33.6019 223.428 34.8865 224.348 35.6464C225.313 36.444 226.653 36.6833 228.445 36.3811C230.28 36.0746 231.737 35.4323 233.319 34.6892L233.428 34.6388L235.229 40.3903L235.15 40.4323C232.853 41.5952 231.149 42.2794 228.206 42.7706C227.391 42.9091 226.615 42.9763 225.872 42.9763H225.863Z"/>
+          <path d="M143.132 52.6199H136.646V8.4471H143.132V17.9475C144.727 10.9576 148.963 7.41016 155.718 7.41016C164.584 7.41016 169.668 13.8627 169.668 25.1095C169.668 36.3563 164.479 43.0272 155.789 43.0272C148.849 43.0272 144.588 39.4461 143.132 32.3807V52.6199ZM153.409 13.3211C146.973 13.3211 143.132 17.6494 143.132 24.8954V25.3992C143.132 32.5612 147.166 37.1917 153.409 37.1917C159.651 37.1917 163.253 32.9013 163.253 25.1095C163.253 17.3178 159.941 13.3169 153.409 13.3169V13.3211Z"/>
+          <path d="M130.932 41.9257H124.5V21.9257C124.5 18.6806 123.472 13.2356 116.595 13.2356C110.928 13.2356 107.544 16.485 107.544 21.9257V41.9257H101.112V21.9257C101.112 18.6806 100.084 13.2356 93.2073 13.2356C87.5399 13.2356 84.1562 16.485 84.1562 21.9257V41.9257H77.7246V8.45392H84.1562V16.7284C85.6465 10.6034 89.6557 7.375 95.7808 7.375C102.565 7.375 106.57 10.935 107.372 17.673C108.552 10.7419 112.363 7.375 119.022 7.375C124.454 7.375 130.928 9.6252 130.928 20.3514V41.9257H130.932Z"/>
+          <path d="M58.2197 42.9328C55.7134 43.2519 52.9846 42.979 50.1172 42.068C45.1257 40.4853 41.4775 37.5928 39.5673 33.7053C37.674 29.8431 37.5312 25.0908 39.1559 19.9565C40.768 14.8683 43.6731 11.111 47.5648 9.08328C51.3767 7.09756 55.9485 6.85827 60.7847 8.39059C70.621 11.5056 74.8947 20.0866 71.6747 30.2545C69.3153 37.702 64.4413 42.1394 58.2197 42.9328ZM53.9879 13.4997C50.0081 14.0035 46.8637 16.9254 45.3104 21.8288C43.0602 28.9405 45.4993 34.3813 51.8427 36.3922C54.9787 37.3871 57.909 37.131 60.3187 35.6533C62.6697 34.2133 64.4833 31.6525 65.5664 28.2436C67.7159 21.451 65.176 16.0018 58.9292 14.0245C57.1869 13.4745 55.5287 13.3066 53.9921 13.5039L53.9879 13.4997Z"/>
+          <path d="M181.515 29.8091H175.81L174.672 8.45312H182.01L181.519 29.8091H181.515Z"/>
+          <path d="M195.256 8.45312H202.594L201.457 29.8091H195.751L195.26 8.45312H195.256Z"/>
+          <path d="M26.931 29.8029C25.7472 33.4637 23.6103 37.0447 17.5188 37.0447C14.2275 37.0447 11.4861 35.97 9.58853 33.9381C7.66158 31.8768 6.64563 28.8667 6.64563 25.2353C6.64563 21.3815 7.64479 18.3798 9.61372 16.3059C11.4525 14.3706 14.1099 13.3504 17.3005 13.3504C22.3719 13.3504 25.554 15.8063 27.0276 20.8525L27.0486 20.9281H33.6061L33.5851 20.8021C31.9604 11.7551 26.6581 7.35547 17.3719 7.35547C6.82195 7.35547 0 14.3454 0 25.1598C0 30.6803 1.66665 35.2479 4.81525 38.3713C7.89248 41.4234 12.3089 43.0354 17.586 43.0354C26.444 43.0354 31.8051 38.5644 33.5431 29.8029H26.9226H26.931Z"/>
+          <path d="M253.525 7.32031C248.387 7.32031 244.058 8.98697 240.998 12.1356C237.883 15.343 236.237 19.9567 236.237 25.4773C236.237 36.3211 242.891 43.0549 253.601 43.0549C261.615 43.0549 266.972 39.3059 268.932 32.316H262.463C260.868 35.6955 257.971 37.3328 253.601 37.3328C247.266 37.3328 243.45 33.7392 242.841 27.2825H268.995L269.004 27.2279C269.113 25.578 269.151 24.3144 269.151 23.1599C269.151 13.3908 263.164 7.32031 253.529 7.32031H253.525ZM253.307 12.971C259.252 12.971 262.522 15.9853 263.038 21.997H242.942C243.853 16.0692 247.43 12.971 253.307 12.971Z"/>
+        </svg>
+      </div>
+      <a href="#"><span class="ic"></span> Inbox</a>
+      <a href="#"><span class="ic"></span> My work</a>
+      <div class="grp mono">Build</div>
+      <a href="#" class="on"><span class="ic"></span> Tickets</a>
+      <a href="#"><span class="ic"></span> Issues</a>
+      <a href="#"><span class="ic"></span> Parts</a>
+      <a href="#"><span class="ic"></span> Code changes</a>
+      <div class="grp mono">Snap-ins</div>
+      <a href="#"><span class="ic" style="background:var(--yellow);"></span> Ripple</a>
+      <a href="#"><span class="ic"></span> Marketplace</a>
+    </aside>
+
+    <!-- CENTER: the ticket record -->
+    <main class="main">
+      <div class="crumb"><span>Tickets</span><span>›</span><span class="mono">TKT-4821</span></div>
+      <div class="rechead">
+        <div class="idrow"><span class="mono">TKT-4821</span><span class="chip chip-r">P1</span><span class="chip chip-d">Open</span></div>
+        <h1>Payment API latency elevated — enterprise checkout failing</h1>
+      </div>
+      <div class="metastrip">
+        <div>Owner<b>M. Rao</b></div>
+        <div>Part<b>Payments</b></div>
+        <div>Account<b>Northwind Corp</b></div>
+        <div>Created<b>2 days ago</b></div>
+        <div>SLA<b>Breaching in 6h</b></div>
+      </div>
+      <div class="tl">
+        <div class="lbl mono">Timeline</div>
+        <div class="tlitem">
+          <div class="av">JL</div>
+          <div><div class="who"><b>J. Lin</b> <span>· 2d ago</span></div><div class="bod">Checkout timing out for Northwind at ~30% of attempts. Payment API p95 latency doubled since Tuesday.</div></div>
+        </div>
+        <div class="tlitem">
+          <div class="av">MR</div>
+          <div><div class="who"><b>M. Rao</b> <span>· 1d ago</span></div><div class="bod">Looks worker-related again. Hesitant to touch the worker config — we had a bad incident last time. Pulling in Ripple to check history.</div></div>
+        </div>
+        <div class="tlitem">
+          <div class="av rip">R</div>
+          <div><div class="who"><b>Ripple</b> <span>· snap-in · just now</span></div><div class="bod">Reconstructed context from 6 records and built an impact graph. Found a high-risk dependency on subscription renewals. Recommendation + 3-task plan ready for review in the panel. →</div></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT: Ripple snap-in panel -->
+    <aside class="panel">
+      <div class="panelhead">
+        <div class="l">
+          <div class="badge">R</div>
+          <div><div class="ttl">Ripple</div><div class="sub">Snap-in · analysing TKT-4821</div></div>
+        </div>
+        <button class="pill pill-y pill-sm">Re-run</button>
+      </div>
+
+      <div class="panelbody">
+
+        <div class="stepper">
+          <b>Problem</b> › <b>Context</b> › <b>Impact</b> › <span class="on2">Review</span> › Approve › Act
+        </div>
+
+        <!-- Context Bundle card -->
+        <div class="snap">
+          <div class="top"><div class="eyebrow mono">Context Bundle</div><h3>Why the config looks this way</h3></div>
+          <div class="pad">
+            <p>The shared worker config was a <b>deliberate choice</b>. A past change to it broke subscription renewals, so the team locked it to protect ordering.</p>
+            <div class="ev"><div class="id mono">INC-142</div><p>Latency spikes twice in 6 months, both during renewal batch runs.</p></div>
+            <div class="ev"><div class="id mono">ENG-381</div><p>Earlier config change caused duplicate renewal billing — reverted.</p></div>
+            <div class="ev"><div class="id mono">ADR-27</div><p>Shared config intentional to preserve renewal ordering.</p></div>
+            <div class="divider"></div>
+            <div class="kv"><span>Component</span><span>payment-worker</span></div>
+            <div class="kv"><span>Also used by</span><span>checkout · renewals</span></div>
+            <div class="kv"><span>Decision owner</span><span>M. Rao</span></div>
+          </div>
+          <div class="foot"><button class="pill pill-gh pill-sm">Open full bundle</button></div>
+        </div>
+
+        <!-- Impact graph card -->
+        <div class="snap">
+          <div class="top"><div class="eyebrow mono">Impact graph</div><h3>Changing X affects Y</h3></div>
+          <div class="pad">
+            <div class="ggwrap"><svg id="g" viewBox="0 0 400 220" style="width:100%; display:block;"></svg></div>
+            <div class="legend">
+              <span><i style="background:#161616;"></i>Change</span>
+              <span><i style="background:#C8341F;"></i>High risk</span>
+              <span><i style="background:#B6820A;"></i>Review</span>
+              <span><i style="background:#128A4B;"></i>Evidence</span>
+            </div>
+            <p style="margin-top:10px;"><b>Blast radius:</b> 2 systems · 1 team · 3 open works. The obvious fix touches a worker also used by renewals.</p>
+          </div>
+        </div>
+
+        <!-- Recommendation card -->
+        <div class="snap">
+          <div class="top"><div class="eyebrow mono">Recommendation</div><h3>Validate queue behaviour first</h3></div>
+          <div class="pad">
+            <p>Investigate the payment-worker queue before changing the API service.</p>
+            <div class="conf"><i></i></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--mut);"><span>Confidence</span><span class="chip chip-a" style="font-size:10px;">Medium</span></div>
+            <div class="divider"></div>
+            <h4>Missing information</h4>
+            <p style="color:var(--amber);">No current queue telemetry available — capture before any change.</p>
+          </div>
+        </div>
+
+        <!-- Action plan + approval card -->
+        <div class="snap">
+          <div class="top"><div class="eyebrow mono">Action plan</div><h3>3 tasks ready to create</h3></div>
+          <div class="pad">
+            <div class="banner" style="margin-bottom:10px;">Nothing is written to DevRev until you approve. Ripple never deploys code.</div>
+            <div class="task"><div class="num">1</div><div><h4>Capture worker queue telemetry</h4><div class="m"><b>Owner:</b> Payments · <b>Evidence:</b> INC-142</div></div><span class="chip chip-g" style="font-size:10px;">OK</span></div>
+            <div class="task"><div class="num">2</div><div><h4>Reproduce latency in staging</h4><div class="m"><b>Depends:</b> task 1 · <b>Evidence:</b> ENG-381</div></div><span class="chip chip-a" style="font-size:10px;">Review</span></div>
+            <div class="task"><div class="num">3</div><div><h4>Draft config change behind a flag</h4><div class="m"><b>Depends:</b> task 2 · conditional · ADR-27</div></div><span class="chip chip-d" style="font-size:10px;">Pending</span></div>
+          </div>
+          <div class="foot">
+            <button class="pill pill-dk pill-sm">Approve &amp; create in DevRev</button>
+            <button class="pill pill-gh pill-sm">Edit</button>
+            <button class="pill pill-gh pill-sm">Reject</button>
+          </div>
+        </div>
+
+        <div class="reply">On approval, Ripple creates ISS-5120 → ISS-5122 on this ticket's part, links them to the evidence, and posts a summary to the timeline above.</div>
+
+      </div>
+    </aside>
+
+  </div>
+
+<script>
+  const svg=document.getElementById('g'); const NS='http://www.w3.org/2000/svg';
+  const nodes=[
+    {id:'c',x:70,y:110,label:'worker',c:'#161616',r:28},
+    {id:'r',x:230,y:55,label:'renewals',c:'#C8341F',r:24},
+    {id:'k',x:230,y:165,label:'checkout',c:'#B6820A',r:23},
+    {id:'e',x:350,y:55,label:'ENG-381',c:'#128A4B',r:19},
+    {id:'i',x:350,y:150,label:'INC-142',c:'#128A4B',r:19},
+  ];
+  const edges=[['c','r','high'],['c','k','rev'],['r','e','ok'],['c','i','ok']];
+  const by=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const ec={high:'#C8341F',rev:'#B6820A',ok:'#C4C4C4'};
+  edges.forEach(([a,b,k])=>{const A=by[a],B=by[b];const l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',A.x);l.setAttribute('y1',A.y);l.setAttribute('x2',B.x);l.setAttribute('y2',B.y);
+    l.setAttribute('stroke',ec[k]);l.setAttribute('stroke-width',k==='high'?3:1.6);
+    if(k!=='high')l.setAttribute('stroke-dasharray','4 4');svg.appendChild(l);});
+  nodes.forEach(n=>{const c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',n.r);c.setAttribute('fill',n.c);svg.appendChild(c);
+    const t=document.createElementNS(NS,'text');t.setAttribute('x',n.x);t.setAttribute('y',n.y+3);t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#fff');t.setAttribute('font-size','9');t.setAttribute('font-weight','600');t.setAttribute('font-family',"'Chip Display',sans-serif");
+    t.textContent=n.label;svg.appendChild(t);});
+</script>
+</body>
+</html>
