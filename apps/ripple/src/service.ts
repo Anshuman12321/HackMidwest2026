@@ -19,7 +19,9 @@ export function failure(error: unknown): Failure {
   const text = error instanceof Error ? error.message : '';
   const code = text.includes('expired') ? 'expired_plan' : text.includes('Stale') || text.includes('digest') ? 'stale_plan'
     : text.includes('owner') ? 'missing_owner' : text.includes('blocking') ? 'blocked' : 'invalid_request';
-  return { code, message: code === 'invalid_request' ? 'The request could not be validated.' : text, retry: 'never' };
+  // Reviewer-facing content-edit errors are safe, specific and actionable (no-op, unknown ticket).
+  const edit = /^(Content edit|Unknown action in content edit)/.test(text);
+  return { code, message: code === 'invalid_request' && !edit ? 'The request could not be validated.' : text, retry: 'never' };
 }
 export class RippleService {
   store: Store; native: NativeGateway; agent: Investigator; secrets: Secrets;

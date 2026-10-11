@@ -11,6 +11,8 @@ export type TicketInput = { type: 'ticket'; title: string; body: string; applies
 export type Ticket = { native: NativeObject; input: TicketInput };
 export interface NativeGateway {
   authenticate(token: string): Promise<Auth>;
+  /** Verify an arbitrary active workspace member (no actor allowlist). Used only by read-only status endpoints. */
+  verifyMember?(token: string): Promise<Auth>;
   issue(auth: Auth, id: string): Promise<NativeObject>;
   issueBrief(auth: Auth, id: string): Promise<IssueBrief>;
   owners(auth: Auth, query: string): Promise<Owner[]>;

@@ -158,3 +158,33 @@ test('Brazil v2 bundles three work sections into one internal execution ticket',
  const e = mockCompleted(); e.results[0]!.native!.id = 'don:core:test:devo/test:issue/1';
  assert.equal(ExecutionResultSchema.safeParse(e).success, false);
 });
+const editReq = (plan: InvestigationResponse, edits: unknown) => RevisePlanRequestSchema.parse({
+  schema_version: '2.0', plan_id: plan.action_graph!.plan_id, expected_revision: plan.action_graph!.revision, content_edits: edits });
+test('content edits seal a new revision and digest; the old digest cannot approve', () => {
+  const before = ready(), id = before.action_graph!.actions[0]!.action_id;
+  const after = applyOwnerAssignments(before, editReq(before, [{ action_id: id, title: 'Edited title', body_markdown: 'Edited body.' }]), now);
+  const a = after.action_graph!, b = before.action_graph!;
+  assert.equal(a.revision, b.revision + 1);
+  assert.notEqual(a.plan_digest, b.plan_digest);
+  assert.equal(a.plan_digest, computePlanDigest(after));
+  assert.equal(a.actions[0]!.title, 'Edited title'); assert.equal(a.actions[0]!.body_markdown, 'Edited body.');
+  for (const k of ['evidence_ids', 'context_entity_ids', 'part_entity_id', 'action_key', 'owner_id'] as const)
+    assert.deepEqual(a.actions[0]![k], b.actions[0]![k]);
+  assert.throws(() => assertDecisionMatches(after, decision(), now), /Stale|digest/);
+  assertDecisionMatches(after, { ...decision(), expected_revision: a.revision, plan_digest: a.plan_digest }, now);
+  assert.throws(() => applyOwnerAssignments(after, editReq(before, [{ action_id: id, title: 'Again' }]), now), /Stale/);
+});
+test('no-op, unknown, empty, duplicate and oversize content edits are rejected', () => {
+  const r = ready(), t = r.action_graph!.actions[0]!;
+  assert.throws(() => applyOwnerAssignments(r, editReq(r, [{ action_id: t.action_id, title: t.title }]), now), /changes nothing/);
+  assert.throws(() => applyOwnerAssignments(r, editReq(r, [{ action_id: 'task-missing', title: 'x' }]), now), /Unknown action/);
+  const bad = (edits: unknown) => RevisePlanRequestSchema.safeParse({ schema_version: '2.0', plan_id: r.action_graph!.plan_id,
+    expected_revision: r.action_graph!.revision, content_edits: edits }).success;
+  assert.equal(bad([{ action_id: t.action_id }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: '   ' }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'x'.repeat(201) }]), false);
+  assert.equal(bad([{ action_id: t.action_id, body_markdown: 'x'.repeat(4001) }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'a' }, { action_id: t.action_id, title: 'b' }]), false);
+  assert.equal(bad([{ action_id: t.action_id, title: 'ok', extra: 1 }]), false);
+  assert.equal(RevisePlanRequestSchema.safeParse({ schema_version: '2.0', plan_id: r.action_graph!.plan_id, expected_revision: 1 }).success, false);
+});

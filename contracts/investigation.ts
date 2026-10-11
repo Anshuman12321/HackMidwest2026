@@ -212,10 +212,20 @@ export const RevisePlanRequestSchema = z.strictObject({
   schema_version: Version,
   plan_id: z.uuid(),
   expected_revision: z.int().positive(),
-  owner_assignments: z.array(z.strictObject({ action_id: Id, owner_id: UserDon })).min(1).max(8),
+  owner_assignments: z.array(z.strictObject({ action_id: Id, owner_id: UserDon })).max(8).default([]),
+  // Reviewer edits to the proposed ticket text. Limits are exactly the Task schema's, so an edited plan always re-parses.
+  content_edits: z.array(z.strictObject({
+    action_id: Id,
+    title: TaskSchema.shape.title.optional(),
+    body_markdown: TaskSchema.shape.body_markdown.optional(),
+  }).refine(e => e.title !== undefined || e.body_markdown !== undefined, { message: 'A content edit must change the title or body' })).max(8).optional(),
 }).superRefine((r, ctx) => {
   if (new Set(r.owner_assignments.map(x => x.action_id)).size !== r.owner_assignments.length)
     ctx.addIssue({ code: 'custom', message: 'Duplicate owner assignments' });
+  if (new Set((r.content_edits ?? []).map(x => x.action_id)).size !== (r.content_edits ?? []).length)
+    ctx.addIssue({ code: 'custom', message: 'Duplicate content edits' });
+  if (!r.owner_assignments.length && !r.content_edits?.length)
+    ctx.addIssue({ code: 'custom', message: 'A revision must assign an owner or edit content' });
 });
 export const PlanDecisionRequestSchema = z.strictObject({
   schema_version: Version,

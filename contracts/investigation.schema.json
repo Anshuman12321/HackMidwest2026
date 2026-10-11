@@ -877,7 +877,7 @@
         "maximum": 9007199254740991
       },
       "owner_assignments": {
-        "minItems": 1,
+        "default": [],
         "maxItems": 8,
         "type": "array",
         "items": {
@@ -896,6 +896,33 @@
           "required": [
             "action_id",
             "owner_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "content_edits": {
+        "maxItems": 8,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action_id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,79}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "body_markdown": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
+          },
+          "required": [
+            "action_id"
           ],
           "additionalProperties": false
         }

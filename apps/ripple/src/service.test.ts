@@ -8,6 +8,7 @@ import { TestDatabase, FakeNative, FixtureAgent, auth, actor } from './testing.t
 import { sealPlan, canonicalJson } from '../../../contracts/review.server.ts';
 import { ticketInput } from './types.ts';
 import type { InvestigationResponse } from '../../../contracts/investigation.ts';
+const hash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
 async function setup(t: { after: (fn: () => Promise<void>) => void }, multi = false) {
   const db = await TestDatabase.create(); t.after(() => db.pg.close());
   const native = new FakeNative(), agent = new FixtureAgent(); agent.multi = multi;
@@ -108,6 +109,42 @@ test('different reviewed content cannot reuse an action key or overwrite native 
   await s.service.store.transaction(sql => s.service.store.save(sql, { workspace: auth.workspace, actorId: actor, startingIssue: ready.context_bundle.entities[0]!.native!.id,
     response: r, state: 'review', decision: null, result: null }));
   await assert.rejects(s.service.decide(auth, s.decide(r)), /differs/); assert.equal(s.native.creates, 1);
+});
+test('reviewer content edits seal a new digest; approval creates exactly the edited text', async t => {
+  const s = await setup(t), ready = await s.revise(s.response), id = ready.action_graph!.actions[0]!.action_id;
+  const edit = (r: InvestigationResponse, title: string, body: string) => s.service.revise(auth, { schema_version: '2.0',
+    plan_id: r.action_graph!.plan_id, expected_revision: r.action_graph!.revision, content_edits: [{ action_id: id, title, body_markdown: body }] });
+  const edited = await edit(ready, 'Reviewer title', 'Reviewer body.');
+  assert.equal(edited.action_graph!.revision, ready.action_graph!.revision + 1);
+  assert.notEqual(edited.action_graph!.plan_digest, ready.action_graph!.plan_digest);
+  assert.equal(edited.action_graph!.actions[0]!.action_key, ready.action_graph!.actions[0]!.action_key);
+  await assert.rejects(s.service.decide(auth, s.decide(ready)), /Stale/);
+  await assert.rejects(s.service.decide(auth, { ...s.decide(edited), plan_digest: ready.action_graph!.plan_digest }), /digest/);
+  await assert.rejects(edit(ready, 'Late edit', 'x'), /Stale/);
+  await assert.rejects(s.service.revise(auth, { schema_version: '2.0', plan_id: edited.action_graph!.plan_id,
+    expected_revision: edited.action_graph!.revision, content_edits: [{ action_id: id, title: 'Reviewer title' }] }), /changes nothing/);
+  const action = edited.action_graph!.actions[0]!;
+  assert.equal(ticketInput(edited, action).title, 'Reviewer title'); assert.equal(ticketInput(edited, action).body, 'Reviewer body.');
+  assert.notEqual(hash(ticketInput(edited, action)), hash(ticketInput(ready, ready.action_graph!.actions[0]!)));
+  await s.service.decide(auth, s.decide(edited)); await s.service.workOnce();
+  const result = (await s.service.read(auth, edited.action_graph!.plan_id)).result!;
+  assert.equal(result.status, 'completed'); assert.equal(s.native.creates, 1);
+  const made = s.native.tickets.get(action.action_key)!.input;
+  assert.equal(made.title, 'Reviewer title'); assert.equal(made.body, 'Reviewer body.');
+  await assert.rejects(edit(edited, 'After decision', 'x'), /locked/);
+});
+test('editing content after a ticket was created never creates a duplicate (stable action_key conflicts)', async t => {
+  const s = await setup(t), first = await s.revise(s.response);
+  await s.service.decide(auth, s.decide(first)); await s.service.workOnce(); assert.equal(s.native.creates, 1);
+  // A second review of the same incident carries the same action_key; its reviewer edit changes the fingerprint.
+  const again = await s.service.investigate(auth, { schema_version: '2.0', request_id: randomUUID(), outcome: 'Restore Brazil subscription renewals without double billing',
+    constraints: ['Keep customer updates as drafts'], reference_time: null, scope_hints: { starting_object: await s.native.issue(auth, 'ISS-42'), part_ids: [], account_ids: [] } });
+  const owned = await s.revise(again);
+  const edited = await s.service.revise(auth, { schema_version: '2.0', plan_id: owned.action_graph!.plan_id, expected_revision: owned.action_graph!.revision,
+    content_edits: [{ action_id: owned.action_graph!.actions[0]!.action_id, title: 'Different title' }] });
+  assert.equal(edited.action_graph!.actions[0]!.action_key, first.action_graph!.actions[0]!.action_key);
+  await assert.rejects(s.service.decide(auth, s.decide(edited)), /differs/);
+  assert.equal(s.native.creates, 1); assert.equal(s.native.tickets.size, 1);
 });
 test('evidence changes during reconciliation preserve successful and uncertain actions', async t => {
   const s = await setup(t, true), ready = await s.revise(s.response);

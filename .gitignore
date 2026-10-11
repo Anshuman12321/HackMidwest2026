@@ -231,3 +231,5 @@ apps/ripple/.preview-data/
 # Buildless Site source is intentionally versioned
 !sites/ripple-demo/dist/
 !sites/ripple-demo/dist/**
+.vercel
+.env*

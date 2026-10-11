@@ -19,10 +19,17 @@
     "build:snap-in": "node apps/ripple/snap-in/build.ts",
     "start:agent": "node apps/ripple/src/agent-main.ts",
     "preview:live": "node apps/ripple/src/preview.ts --live",
-    "investigate": "npm run investigate --workspace=@ripple/contracts --"
+    "investigate": "npm run investigate --workspace=@ripple/contracts --",
+    "build:app": "node apps/ripple/build-web.ts",
+    "app": "npm run build:app && node --env-file-if-exists=apps/ripple/.env.local apps/ripple/src/local-app.ts",
+    "app:live": "npm run build:app && RIPPLE_LOCAL_MODE=live-preview node --env-file-if-exists=apps/ripple/.env.local apps/ripple/src/local-app.ts",
+    "app:read": "npm run build:app && RIPPLE_LOCAL_MODE=read-only node --env-file-if-exists=apps/ripple/.env.local apps/ripple/src/local-app.ts",
+    "build:vercel": "node apps/ripple/build-vercel.ts"
   },
   "dependencies": {
     "pg": "8.16.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "sharp": "0.35.5",
     "zod": "4.6.5"
   },
@@ -30,6 +37,8 @@
     "@electric-sql/pglite": "0.3.14",
     "@types/node": "26.6.5",
     "@types/pg": "8.15.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "esbuild": "0.25.12",
     "typescript": "7.0.2"
   }

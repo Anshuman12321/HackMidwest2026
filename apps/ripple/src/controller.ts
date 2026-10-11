@@ -56,6 +56,13 @@ export class Controller {
         response = await this.service.revise(auth, { schema_version: '2.0', plan_id: state.planId, expected_revision: state.revision,
           owner_assignments: [{ action_id: action.action_id.slice('owner:'.length), owner_id: values[0] }] });
         plan = await this.service.read(auth, state.planId);
+      } else if (name === 'content') {
+        // Reviewer edit of title/body: seals a new revision exactly like an owner change; never approves.
+        const field = z.union([z.string(), z.object({ value: z.string() }).transform(v => v.value)]);
+        const edit = z.object({ title: field.optional(), body_markdown: field.optional() }).parse(action.value ?? {});
+        response = await this.service.revise(auth, { schema_version: '2.0', plan_id: state.planId, expected_revision: state.revision,
+          content_edits: [{ action_id: action.action_id.slice('content:'.length), ...edit }] });
+        plan = await this.service.read(auth, state.planId);
       } else if (name === 'approve' || name === 'reject') {
         plan = await this.service.decide(auth, { schema_version: '2.0', plan_id: state.planId, expected_revision: state.revision,
           plan_digest: state.digest, decision: name === 'approve' ? 'approve' : 'reject', idempotency_key: state.decisionKey });

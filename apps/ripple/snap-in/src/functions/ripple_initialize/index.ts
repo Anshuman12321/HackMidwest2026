@@ -1,3 +1,3 @@
-import { bridge } from '../../bridge.ts';
+import { launcher } from '../../bridge.ts';
 import type { Event } from '../../bridge.ts';
-export default async function run(events: Event[]) { return bridge(events, true); }
+export default async function run(events: Event[]) { return launcher(events); }

@@ -26,10 +26,12 @@ export const fixture = (multi = false) => InvestigationResponseSchema.parse(JSON
   new URL(`../../../contracts/examples/${multi ? 'multi-' : ''}investigation-response.json`, import.meta.url), 'utf8')));
 export const actor = 'don:identity:dvrv-us-1:devo/1mWckJhGyy:devu/6';
 export const auth: Auth = { workspace: '1mWckJhGyy', actorId: actor, token: 'local-fixture-token' };
+export const memberToken = 'local-member-token';
 export class FakeNative implements NativeGateway {
   tickets = new Map<string, Ticket>(); creates = 0; deny = false; invalidOwner = false;
   behavior: 'ok' | 'commit_timeout' | 'timeout' | 'reject' = 'ok'; failKey: string | null = null;
   async authenticate(token: string) { if (token !== auth.token || this.deny) throw new RippleError('permission_denied', 'Unauthorized actor.'); return auth; }
+  async verifyMember(token: string) { if (token !== auth.token && token !== memberToken || this.deny) throw new RippleError('permission_denied', 'Unauthorized actor.'); return auth; }
   async issue(_auth: Auth, id: string) {
     const native = fixture().context_bundle.entities.find(e => e.kind === 'issue')!.native!;
     if (id !== native.id && id !== native.display_id) throw new RippleError('permission_denied', 'Unknown issue.'); return native;

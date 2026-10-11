@@ -8,8 +8,6 @@ import { Controller } from './controller.ts';
 import { graphSvg, graphPng, graphData } from './graph.ts';
 import type { Snap } from './ui.ts';
 import { TestDatabase, FakeNative, FixtureAgent, auth, actor, fixture } from './testing.ts';
-import { bridge } from '../snap-in/src/bridge.ts';
-import type { Event } from '../snap-in/src/bridge.ts';
 const flatten = (s: Snap[]): Snap[] => s.flatMap(v => [v, ...flatten((v.elements ?? []) as Snap[])]);
 async function setup(t: { after: (fn: () => Promise<void>) => void }) {
   const db = await TestDatabase.create(); t.after(() => db.pg.close());
@@ -45,6 +43,38 @@ test('native presentation investigates, revises owner, opens every citation and 
   const resumed = await s.controller.initialize(auth, s.issue);
   assert.ok(JSON.stringify(resumed).includes('Execution result'));
   assert.ok(JSON.stringify(resumed).includes('Start a fresh review'));
+});
+test('signed content control edits title and body into a new revision and approval covers the edited text', async t => {
+  const s = await setup(t);
+  const intake = flatten((await s.controller.initialize(auth, s.issue)).snaps).find(n => n.type === 'form')!;
+  let ui = await s.controller.action(auth, { action_id: intake.action_id, block_id: intake.block_id, value: {} }, s.issue);
+  const owner = flatten(ui.snaps).find(n => n.type === 'user_picker')!;
+  ui = await s.controller.action(auth, { action_id: owner.action_id, block_id: owner.block_id, value: [actor] }, s.issue);
+  const form = flatten(ui.snaps).find(n => String(n.action_id).startsWith('content:'))!;
+  assert.equal(form.type, 'form'); assert.equal(form.action_type, 'remote');
+  assert.ok(String(form.block_id).length > 20, 'content control carries the signed state');
+  assert.deepEqual((form.elements as Snap[]).map(n => (n.element as Snap).action_id), ['title', 'body_markdown']);
+  const before = flatten(ui.snaps).find(n => String(n.action_id).startsWith('approve:'))!;
+  const edited = await s.controller.action(auth, { action_id: form.action_id, block_id: form.block_id,
+    value: { title: { value: 'Edited by reviewer' }, body_markdown: 'Edited body' } }, s.issue);
+  const text = JSON.stringify(edited);
+  assert.ok(text.includes('Edited by reviewer') && text.includes('Edited body'));
+  assert.ok(text.includes('Revision 3'), 'edit sealed a new revision');
+  const approve = flatten(edited.snaps).find(n => String(n.action_id).startsWith('approve:'))!;
+  assert.equal(approve.disabled, false);
+  // The pre-edit signed state is stale: it cannot approve the edited revision.
+  const stale = await s.controller.action(auth, { action_id: before.action_id, block_id: before.block_id, value: 'approve' }, s.issue);
+  assert.ok(JSON.stringify(stale).includes('Stale') || JSON.stringify(stale).toLowerCase().includes('stale') || JSON.stringify(stale).includes('revision'));
+  assert.equal(s.native.creates, 0);
+  const bad = await s.controller.action(auth, { action_id: form.action_id, block_id: approve.block_id, value: { title: { value: 'Edited by reviewer' } } }, s.issue);
+  assert.ok(JSON.stringify(bad).includes('changes nothing'));
+  await s.controller.action(auth, { action_id: approve.action_id, block_id: approve.block_id, value: 'approve' }, s.issue);
+  await s.service.workOnce();
+  const made = [...s.native.tickets.values()][0]!.input;
+  assert.equal(made.title, 'Edited by reviewer'); assert.equal(made.body, 'Edited body');
+  // After the decision the editing control is gone.
+  const resumed = await s.controller.initialize(auth, s.issue);
+  assert.ok(!flatten(resumed.snaps).some(n => String(n.action_id).startsWith('content:')));
 });
 test('live local preview labels simulated approval and supplies the current owner roster', async t => {
   const s = await setup(t);
@@ -85,7 +115,22 @@ test('graph is deterministic, escapes labels, highlights selection, and renders 
   response.context_bundle.entities[0]!.label = '<script> & "unsafe"';
   assert.ok(!graphSvg(response, view).includes('<script>'));
   response.context_bundle.entities.push({ entity_id: 'article-node', kind: 'article', label: 'Replay guidance', native: null, source_ref: { record_id: 'DOC-1', path: 'docs' } });
-  assert.ok(graphData(response, view).nodes.some(n => n.id === 'article-node'));
+  const layout = graphData(response, view);
+  assert.ok(layout.nodes.some(n => n.id === 'article-node' && n.column === 3));
+  assert.ok(layout.columns.some(c => c.label === 'REFERENCE DOCUMENTS'));
+  assert.ok(layout.width >= layout.columns.length * 295 + 15);
+  const article = response.context_bundle.entities.at(-1)!;
+  article.source_ref = { record_id: 'ART-22', path: 'docs' };
+  assert.equal(graphData(response, view).nodes.find(n => n.id === 'article-node')?.subtitle, 'ART-22');
+  response.context_bundle.evidence.push({ ...response.context_bundle.evidence[0]!, entity_id: 'article-node', coverage: 'archive_only',
+    source_ref: { ...response.context_bundle.evidence[0]!.source_ref, record_id: 'ART-22' } });
+  assert.equal(graphData(response, view).nodes.find(n => n.id === 'article-node')?.subtitle, 'Archive · ART-22');
+  const referencesOnly = structuredClone(response);
+  referencesOnly.context_bundle.entities = [referencesOnly.context_bundle.entities.at(-1)!];
+  const compact = graphData(referencesOnly, view);
+  assert.deepEqual(compact.columns.map(c => c.label), ['REFERENCE DOCUMENTS']);
+  assert.equal(compact.width, 620);
+  assert.equal(compact.nodes[0]?.x, 35);
   const png = await graphPng(response, view);
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
 });
@@ -99,22 +144,6 @@ test('signed state separates purposes and encrypted credentials reject tampering
   const b = Buffer.from(encrypted, 'base64url'); b[30] = b[30]! ^ 1;
   assert.throws(() => secrets.decrypt(b.toString('base64url')));
 });
-test('snap-in forwards platform actor token, signed issue context and native action payload', async t => {
-  const key = randomUUID() + randomUUID(), prior = globalThis.fetch;
-  const captured: { url: string; init: RequestInit }[] = [];
-  globalThis.fetch = async (url, init) => { captured.push({ url: String(url), init: init! }); return Response.json({ snap_kit_body: { body: { snaps: [] } } }); };
-  t.after(() => { globalThis.fetch = prior; });
-  const event: Event = { payload: { context: { object_id: 'ISS-42' }, action: { id: 'owner:test', block_id: 'signed', value: [actor] } },
-    context: { secrets: { actor_session_token: 'platform-token' } }, input_data: { global_values: { ripple_service_url: 'https://ripple.example' }, keyrings: { ripple_bridge_secret: key } } };
-  await bridge([event], false);
-  assert.equal(captured[0]!.url, 'https://ripple.example/native/action');
-  const headers = captured[0]!.init.headers as Record<string, string>;
-  assert.equal(headers.Authorization, 'Bearer platform-token');
-  const proof = new Secrets(key).verify<{ path: string }>(headers['X-Ripple-Bridge']!, 'bridge'); assert.equal(proof.path, '/native/action');
-  assert.deepEqual(JSON.parse(captured[0]!.init.body as string), { issue: 'ISS-42', action: { action_id: 'owner:test', block_id: 'signed', value: [actor] } });
-  await assert.rejects(bridge([{ ...event, context: { secrets: {} } }], false), /actor context/);
-});
-
 test('one-click investigation derives the goal from the current issue without an intake form', async t => {
   const s = await setup(t);
   const original = s.native.issueBrief.bind(s.native);

@@ -1,33 +1,58 @@
-import sharp from 'sharp';
 import type { InvestigationResponse } from '../../../contracts/investigation.ts';
 import type { View } from './types.ts';
 export const escapeXml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]!));
-type Node = { id: string; label: string; kind: string; subtitle: string; column: number; x: number; y: number };
-type Edge = { id: string; from: string; to: string; inference: boolean; planned: boolean };
+type Node = { id: string; label: string; kind: string; subtitle: string; column: number; x: number; y: number;
+  sourceId?: string; url?: string | null; evidenceIds: string[] };
+type Edge = { id: string; from: string; to: string; inference: boolean; planned: boolean;
+  statement: string; basis: string; evidenceIds: string[] };
+type Column = { index: number; group: number; label: string };
+const contextGroups = [
+  'ISSUE & PRODUCT CONTEXT', 'CUSTOMER REPORTS', 'ACCOUNTS & CUSTOMER CONTEXT', 'REFERENCE DOCUMENTS',
+];
+function short(text: string, max = 32): string { return text.length > max ? text.slice(0, max - 1) + '…' : text; }
 export function graphData(response: InvestigationResponse, view: View) {
   const entities = response.context_bundle.entities;
   const contextNodes = entities;
   const nodes: Node[] = contextNodes.map(e => ({ id: e.entity_id, label: e.label, kind: e.kind,
-    subtitle: e.native?.display_id ?? e.source_ref?.record_id ?? e.kind,
-    column: ['account', 'opportunity', 'person'].includes(e.kind) ? 2 : e.kind === 'ticket' ? 1 : 0, x: 0, y: 0 }));
+    subtitle: short(e.kind === 'article' && e.source_ref && /(?:^|\/)(art-\d+)(?:[-.]|$)/i.test(e.source_ref.record_id)
+      && response.context_bundle.evidence.some(ev => ev.entity_id === e.entity_id && ev.coverage === 'archive_only'
+        && ev.source_ref.record_id === e.source_ref!.record_id)
+      ? `Archive · ${e.source_ref.record_id.match(/(?:^|\/)(art-\d+)(?:[-.]|$)/i)![1]!.toUpperCase()}` : e.native?.display_id ?? e.source_ref?.record_id ?? e.kind),
+    sourceId: e.source_ref?.record_id, url: e.native?.url,
+    evidenceIds: response.context_bundle.evidence.filter(ev => ev.entity_id === e.entity_id).map(ev => ev.evidence_id),
+    column: e.kind === 'article' ? 3 : ['account', 'opportunity', 'person'].includes(e.kind) ? 2 : e.kind === 'ticket' ? 1 : 0, x: 0, y: 0 }));
   const edges: Edge[] = response.context_bundle.relationships.map(r => ({ id: r.relationship_id, from: r.from_entity_id,
-    to: r.to_entity_id, inference: r.basis === 'inference', planned: false }));
+    to: r.to_entity_id, inference: r.basis === 'inference', planned: false,
+    statement: r.statement, basis: r.basis, evidenceIds: r.evidence_ids }));
   if (view.mode === 'work') {
     // Work mode focuses on proposed tickets and the context they explicitly cite.
     const used = new Set(response.action_graph?.actions.flatMap(a => [a.part_entity_id, ...a.context_entity_ids]) ?? []);
-    nodes.splice(0, nodes.length, ...nodes.filter(n => used.has(n.id)).map(n => ({ ...n, column: 0 })));
+    nodes.splice(0, nodes.length, ...nodes.filter(n => used.has(n.id)));
     edges.splice(0, edges.length);
     for (const a of response.action_graph?.actions ?? []) {
-      nodes.push({ id: a.action_id, label: a.title, kind: 'proposed', subtitle: 'Proposed internal ticket', column: 1, x: 0, y: 0 });
-      edges.push({ id: `plan-${a.action_id}`, from: a.part_entity_id, to: a.action_id, inference: false, planned: true });
+      nodes.push({ id: a.action_id, label: a.title, kind: 'proposed', subtitle: 'Proposed internal ticket', column: 4, x: 0, y: 0, evidenceIds: a.evidence_ids });
+      for (const contextId of new Set([a.part_entity_id, ...a.context_entity_ids])) {
+        edges.push({ id: contextId === a.part_entity_id ? `plan-${a.action_id}` : `context-${a.action_id}-${contextId}`,
+          from: contextId, to: a.action_id, inference: false, planned: true,
+          statement: 'This proposed ticket cites this context record.', basis: 'proposed_context', evidenceIds: a.evidence_ids });
+      }
     }
     (response.action_graph?.dependencies ?? []).forEach((d, i) => edges.push({ id: `dependency-${i}`,
-      from: d.prerequisite_action_id, to: d.dependent_action_id, inference: true, planned: true }));
+      from: d.prerequisite_action_id, to: d.dependent_action_id, inference: true, planned: true,
+      statement: d.reason, basis: 'investigation_order', evidenceIds: [...new Set(response.action_graph?.actions
+        .filter(a => [d.prerequisite_action_id, d.dependent_action_id].includes(a.action_id)).flatMap(a => a.evidence_ids))] }));
   }
-  const counts = [0, 0, 0];
-  nodes.forEach(n => { n.x = 35 + n.column * 295; n.y = 64 + counts[n.column]! * 108; counts[n.column] = counts[n.column]! + 1; });
+  const groups = [...new Set(nodes.map(n => n.column))].sort((a, b) => a - b);
+  const columns: Column[] = groups.map((group, index) => ({ index, group,
+    label: group === 4 ? 'PROPOSED WORK' : contextGroups[group]! }));
+  const compact = new Map(columns.map(column => [column.group, column.index]));
+  const counts = columns.map(() => 0);
+  nodes.forEach(n => {
+    const column = compact.get(n.column)!;
+    n.column = column; n.x = 35 + column * 295; n.y = 64 + counts[column]! * 108; counts[column] = counts[column]! + 1;
+  });
   return { nodes, edges: edges.filter(e => nodes.some(n => n.id === e.from) && nodes.some(n => n.id === e.to)),
-    width: view.mode === 'work' ? 620 : 900, height: Math.max(330, Math.max(...counts) * 108 + 90) };
+    columns, width: Math.max(620, columns.length * 295 + 15), height: Math.max(330, Math.max(...counts, 0) * 108 + 90) };
 }
 function wrap(text: string): string[] {
   const words = text.replace(/^\[Maple[^\]]*\]\s*/, '').split(/\s+/), lines: string[] = [];
@@ -40,7 +65,7 @@ function wrap(text: string): string[] {
   return lines.slice(0, 2).map((l, i) => i === 1 && lines.length > 2 ? l.slice(0, 24) + '…' : l);
 }
 export function graphSvg(response: InvestigationResponse, view: View): string {
-  const { nodes, edges, width, height } = graphData(response, view);
+  const { nodes, edges, columns, width, height } = graphData(response, view);
   const byId = new Map(nodes.map(n => [n.id, n]));
   const selectedRelation = edges.find(e => e.id === view.selected);
   const line = edges.map(e => {
@@ -56,16 +81,15 @@ export function graphSvg(response: InvestigationResponse, view: View): string {
     const fill = selected ? '#fff8b2' : n.kind === 'proposed' ? '#fff9cf' : '#fff';
     const badge = n.kind === 'account' ? '#2456c8' : n.kind === 'proposed' ? '#665600' : '#737373';
     return `<g><rect x="${n.x}" y="${n.y}" width="230" height="80" rx="10" fill="${fill}" stroke="${selected ? '#161616' : '#e0e2e4'}" stroke-width="${selected ? 2 : 1}"/>
-      <text x="${n.x + 13}" y="${n.y + 19}" font-size="10" fill="${badge}" letter-spacing=".5">${escapeXml(n.subtitle)}</text>
+      <text x="${n.x + 13}" y="${n.y + 19}" font-size="10" fill="${badge}" letter-spacing=".5">${escapeXml(short(n.subtitle))}</text>
       ${wrap(n.label).map((label, i) => `<text x="${n.x + 13}" y="${n.y + 40 + i * 16}" font-size="12" fill="#161616">${escapeXml(label)}</text>`).join('')}</g>`;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <rect width="100%" height="100%" fill="#fafafa"/><g font-family="Arial, sans-serif">
-    <text x="35" y="29" font-size="11" fill="#737373">${view.mode === 'context' ? 'ISSUE &amp; PRODUCT CONTEXT' : 'EXISTING CONTEXT'}</text>
-    <text x="330" y="29" font-size="11" fill="#737373">${view.mode === 'context' ? 'CUSTOMER REPORTS' : 'PROPOSED EXECUTION'}</text>
-    ${view.mode === 'context' ? '<text x="625" y="29" font-size="11" fill="#737373">ACCOUNTS</text>' : ''}
+    ${columns.map(column => `<text x="${35 + column.index * 295}" y="29" font-size="11" fill="#737373">${escapeXml(column.label)}</text>`).join('')}
     ${line}${cards}<text x="35" y="${height - 18}" font-size="10" fill="#737373">${view.mode === 'context' ? 'Solid: documented relationship · Dashed: inference' : 'Dashed: proposed context / investigation order'}</text></g></svg>`;
 }
 export async function graphPng(response: InvestigationResponse, view: View): Promise<Buffer> {
+  const { default: sharp } = await import('sharp'); // lazy: only the PNG route needs the native module
   return sharp(Buffer.from(graphSvg(response, view))).png().toBuffer();
 }

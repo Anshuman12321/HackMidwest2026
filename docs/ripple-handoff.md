@@ -1,14 +1,26 @@
 # Ripple implementation handoff
 
-Updated 10 October 2026. This handoff covers the merged agent/UI implementation plus optional issue-goal intake, the editorial redesign, and the scrolling/interaction fixes on `dev`.
+Updated 11 October 2026. This handoff covers the local React app, verified Supabase persistence, deployed snap-in inspection, and the existing agent/review safeguards on `dev`.
 
 ## Current state
 
-The agent, authenticated review service, durable worker, and Snap-in package are implemented. The local browser uses the shared controller and native-card renderer. Fixture mode is fully offline; live preview reads DevRev but creates only simulated `PREVIEW-*` tickets. A hosted deployment and native Team01 installation are still pending. Pushing this branch does not deploy or install Ripple.
+The agent, authenticated review service, durable worker, and Snap-in package are implemented. The local browser uses the shared controller and native-card renderer. Fixture mode is fully offline; live preview reads DevRev but creates only simulated `PREVIEW-*` tickets. The React app in `apps/ripple/web` uses the same signed controller with persistent local or Supabase storage. The hosted Ripple app is deployed on Vercel at https://ripple-orpin-six.vercel.app (project `ripple`), with writes enabled in production. It runs the investigator in-process, stores state in Supabase schema `ripple_hosted`, and creates a ticket only after explicit approval in the UI. The Team01 snap-in installed earlier was read-only; the repository snap-in is now a launcher card that shows status and links to the hosted app. Pushing this branch does not deploy or install anything. See [the README Vercel section](../apps/ripple/README.md#hosted-deployment-vercel).
 
 The product decision is **the solved issue is the business outcome**. **Investigate issue** derives `Resolve <display ID>: <current title>` and anchors retrieval to the accessible native issue, including its description and acceptance criteria. **Refine goal or add constraints** is optional and starts collapsed. Blank or whitespace-only goals use the issue. Saved refinements survive re-investigation; **Fresh review** resets intake to the issue. Default constraints prohibit production-setting changes and keep customer updates as drafts. The v2 contract still contains a resolved outcome string; no schema or database migration was added for optional intake.
 
 The Brazil demo proposes one internal ticket containing scheduler investigation, replay-safety checks, and customer-update drafts. It does not reroute traffic, resolve the original issue, or send customer messages. The separate-work fixture demonstrates three proposed tickets. Only approval of the current sealed revision permits execution.
+
+## React app and current verification
+
+Run `RIPPLE_PYTHON=/path/to/python3.11-or-newer npm run app:read` and open `http://127.0.0.1:8788`. Configuration lives in ignored `apps/ripple/.env.local`; start from `local.env.example`. Read-only mode has no decision/owner controls, rejects those actions server-side and disables the worker. Investigations use current DevRev MCP evidence with the local contract planner. The fallback fixture mode creates only `PREVIEW-*` work. `npm run app:live` uses the personal MCP reader and local planner, with simulated writes. `connected` requires an explicitly configured v2 agent endpoint and delegated native credentials. Mode labels remain visible throughout review and approval.
+
+Supabase MCP provisioned migrations 001–004 in project `qqzqgmlgzxkevgswnkzj`, with RLS enabled and browser roles denied access. The app connected through the IPv4 session pooler using the official CA and verified TLS. Browser intake, goal editing, owner revision, approval, completed simulation and application restart persisted to Supabase before the read-only scope change. The final read-only flow saved a separate live investigation with zero jobs, write rows or simulated tickets. One approved ticket produced one completed ledger row and one durable simulated native record. Tests also close/reopen the disk database and replay approval without duplicate creation. The React app polls genuine worker progress; it does not invent agent phases.
+
+DevRev inspection used MCP for identity, issue, snap-in and function contexts. Because MCP exposes no snap listing/invocation tool, read-only REST located the installed snap and downloaded its deployed artifact. Snap `639fd639-f6d7-454c-8885-e5c944d17092`, version `5314e367-72bf-42c6-8eec-b67afe87d115`, artifact/360 implements actor-scoped read-only investigation and display-only proposed work. The actual function factory calls `hostedNative`, not the bundled HTTPS review bridge; installed inputs are empty and scopes lack ticket writes. The user confirmed this read-only snap is the current deployment and deferred building ticket creation/API triggers to a fresh run. The React app does not claim hosted-agent execution. Local fixture, live-preview and read-only tables are isolated in separate Supabase schemas; connected/public remains a separate integration boundary. No deployed agent configuration was changed. Vercel hosting is now in use; it is documented in the README.
+
+The initial Supabase verification created fixture records in `public` before mode isolation was introduced. Those records remain preserved; all new local runs use isolated schemas. Before enabling a future connected/public runtime, separate those legacy simulation records from the native execution namespace.
+
+The current suite passes 126 TypeScript tests. Native ticket creation is implemented behind explicit approval in the hosted app. Local read-only actions are tested to reject signed approvals/owner changes without scheduling work.
 
 ## Local setup
 
@@ -60,32 +72,40 @@ Test real wheel/touch scrolling as well as clicks; locator auto-scrolling can co
 5. Select a current owner. Confirm approval becomes enabled for the saved revision, with no controls stuck disabled after the response. Approve and confirm `PREVIEW-*` completion; check write status, then start a fresh review.
 6. Reject a review and confirm zero new work. For recovery demos, choose the write response before approval. Timeout-after-creation must reconcile the existing simulated ticket; separate-work plus partial failure must retain successful results.
 
-The scrolling/interaction pass verified blank refinement, owner assignment, citations, graph modes/nodes/relationships, zoom/close, reset and simulated approval in the browser. Automated validation passes 88 TypeScript tests, the offline Python adapter checks, TypeScript validation, JavaScript syntax validation and the Snap-in build. Browser layout checks are manual; the automated suite does not prove native DevRev acceptance.
+The earlier preview scrolling/interaction pass verified blank refinement, owner assignment, citations, graph modes/nodes/relationships, zoom/close, reset and simulated approval in the browser. That earlier implementation passed 88 TypeScript tests, the offline Python adapter checks, TypeScript validation, JavaScript syntax validation and the Snap-in build. Browser layout checks are manual; the automated suite does not prove native DevRev acceptance.
 
 ## Remaining DevRev deployment work
 
-Use [the runtime/deployment guide](../apps/ripple/README.md#deployment) and [environment template](../apps/ripple/.env.example). The implementation has no configured hosted service, agent, PostgreSQL instance, or completed Team01 installation.
+Use [the runtime/deployment guide](../apps/ripple/README.md#deployment) and [environment template](../apps/ripple/.env.example). Supabase schema `ripple_hosted` is provisioned and the Vercel deployment is live (README, "Hosted deployment (Vercel)"). Real ticket creation awaits the user's explicit approval in the UI. The repository snap-in is a launcher card; it must be rebuilt and reinstalled to ship. The table lists rollout items still open. The Vercel path replaces the separate review service and polling worker, and does not reconfigure the teammate's existing agents.
 
 | Work | Handoff requirement |
 | --- | --- |
-| Service and database | Provision PostgreSQL and an HTTPS service origin. Apply `apps/ripple/migrations` through `migrate.ts`; start `main.ts`, which runs the durable polling worker. Configure database backups, restricted roles, stable encryption/signing secret, and log redaction. |
-| Agent | Run `agent-main.ts` separately with Node/Python and the protected agent bearer secret. Make `/investigate` and `/revalidate` reachable from the service. Include the manifest and checksum-verified Maple archive used by retrieval. The Dockerfile defaults to the review service; an agent process needs its own start command. |
-| Delegated auth | Provide a deployment-owned actor-delegated DevRev MCP endpoint. Verify allowed actor/owner DONs and native assignment roles. Personal connector credentials and a developer PAT are not substitutes for each user's delegated authority. |
-| Snap-in | Regenerate the build archive. Configure `ripple_service_url` and developer secret keyring `ripple_bridge_secret` matching `RIPPLE_SECRET`. Install the manifest/package through the DevRev version/install flow. Verify scope names and installation rights with the current platform reference. |
-| Native acceptance | On ISS-42, verify initializer context and actor token, nested/collapsed cards, one-click intake, blank optional refinement, owner picker/form payloads, signed PNG fetch, disabled approval during revision, and real ticket readback after explicit approval. |
-| Second-user acceptance | A fresh authorized session must create its own review, fail to read another actor's plan or approve copied signed controls, and complete approved work only with its actual native permissions. |
-| Runtime recovery | Exercise real PostgreSQL worker leases/concurrency and timeout-after-create reconciliation. Local PGlite and simulated writes do not establish multi-process or native-write behavior. |
+| Service and database | Hosted schema is `ripple_hosted` (applied per `migrations/hosted-setup.md`; the function never migrates). Configure database backups, restricted roles, stable `RIPPLE_SECRET` and log redaction. `migrate.ts` and `main.ts` apply only to the container path. |
+| Agent | Vercel uses the in-process `hosted-agent.ts` port; no separate agent process is needed there. `agent-main.ts` remains for connected/local modes and needs its own protected bearer and start command. |
+| Delegated auth | `DEVREV_TOKEN` is the DEVU-6 personal access token by user decision, which suits this single-user app. Rotate it, since it was exposed in a session log. Any multi-user rollout needs a deployment-owned actor-delegated MCP endpoint and verified native assignment roles. |
+| Snap-in | Regenerate `build.tar.gz`, configure `ripple_service_url`, and set keyring `ripple_bridge_secret` to the value of `RIPPLE_BRIDGE_SECRET` (not `RIPPLE_SECRET`). Install through the DevRev version/install flow, and verify scope names and installation rights against the current platform reference. |
+| Native acceptance | On ISS-42, verify the launcher card status, the **Open in Ripple** link, the signed `/native/status` call, and that the snap-in exposes no write controls. Then approve one revision in the web app and verify real ticket readback. |
+| Second-user acceptance | Not applicable to the single-user deployment. Required before any multi-user rollout: a fresh authorized session must create its own review, fail to read another actor's plan or approve copied signed controls, and complete approved work only with its actual native permissions. |
+| Runtime recovery | Inline `workOnce` replaces the polling worker on Vercel. Verify lease resumption through `/initialize` and `/cron`, and exercise timeout-after-create reconciliation against the real native API. Local PGlite and simulated writes do not establish multi-process or native-write behavior. |
 
-Native writes create approved internal tickets only. Severity/stage changes, native dependency links, timeline summaries, outbound messages and production changes remain outside the implemented write scope. March evidence is historical replay, not proof of a current outage. No live business work was created during this UI validation.
+Native writes create approved internal tickets only. Severity/stage changes, native dependency links, timeline summaries, outbound messages and production changes remain outside the implemented write scope. March evidence is historical replay, not proof of a current outage. No live business work was created during the earlier local validation.
 
 ## Code map
+
+### Brazil subscription investigation example (October 11)
+
+The local read-only React app was rerun on native **ISS-42** (source ISS-031) with the refinement **“Restore Brazil subscription renewals without double billing.”** Live MCP retrieval produced 12 context records, 7 source-record relationships and 16 citations: the issue, TKT-50/TKT-52/TKT-53, CAPL-4, TechFlow Payments/GlobalCommerce Solutions/GlobalMart, and four explicitly archive-only guides. The review is saved in `ripple_read_only`; its execution jobs and action ledger remain empty. Customer reports distinguish missing scheduled payment attempts from successful manual API charges; current runtime cause and safe recovery remain unverified.
+
+Known local retrieval limitation: `issueOutcome` uses the imported issue title, while `retrieve_investigation.py` scores candidates against the first eight outcome terms with an 0.8 threshold. The default rerouting title filters out these three customer reports despite their semantic search relevance. The focused refinement retrieves all three without hardcoded evidence IDs. Improving this ranking remains separate work; the deployed teammate snap-in was not changed.
+
+A subsequent broader run kept native ISS-42 as the verified `starting_issue` and used **“Restore subscription renewals without double billing.”** Constraints focus on Brazil, compare historical renewal/retry/dunning/webhook symptoms, prohibit shared-cause assumptions, and prohibit production changes or sending updates. This retrieved **15 records, 10 source-record relationships and 22 citations**. Added records are the distinct native ISS-13 auto-renewal issue (source ISS-002), TKT-7's historical report of 400 uncharged subscriptions, and FEAT-22 Renewal & Cancellation Workflows. GlobalCommerce appears in both the historical general renewal report and a Brazil report. These are comparison records, not proof the incidents share a runtime cause; there is no invented issue-to-issue causal edge. The retrieved set contained no plan-migration, seat-quantity or cancellation-only work.
 
 | Area | Files |
 | --- | --- |
 | Issue intake and actions | `apps/ripple/src/controller.ts`, `types.ts`, `ui.ts` |
 | Native issue metadata | `apps/ripple/src/native.ts`, `local-native.ts` (`issueBrief` returns title/body separately from strict wire identity) |
 | Graph | `apps/ripple/src/graph.ts`; preview graph data is added only in preview mode |
-| Browser rendering | `apps/ripple/preview/index.html`, `preview.css`, `preview.js`; `src/preview.ts` serves the fixture/live preview |
+| Browser rendering | `apps/ripple/web/app.tsx`, `app.css`, `build-web.ts`; `src/local-app.ts` serves React. `preview` remains the separate simulation lab. |
 | Agent and exact revalidation | `apps/ripple/src/agent-main.ts`, `agent-http.ts`, `agent-process.ts`, `contracts/investigate.server.ts`, `scripts/agent_bridge.py` |
 | Approval, storage, recovery | `apps/ripple/src/service.ts`, `store.ts`, `security.ts`, `migrations/001_ripple.sql` |
 | Native installation bridge | `apps/ripple/snap-in/manifest.yaml`, `src/bridge.ts`, `src/function-factory.ts` |

@@ -1,6 +1,77 @@
 # Ripple issue brief
 
-For the current change summary, browser acceptance checklist, and remaining DevRev installation work, see [the handoff](../../docs/ripple-handoff.md).
+## Hosted deployment (Vercel)
+
+Production URL: https://ripple-orpin-six.vercel.app (Vercel project `ripple`). Ripple is a single-user web app that reads and writes Team01 through one server-side DevRev credential.
+
+Build and deploy from the repository root:
+
+```sh
+npm run build:vercel
+vercel deploy --prebuilt --prod
+```
+
+`build:vercel` writes Build Output API v3 to `.vercel/output`: the React app as static files, plus one Node 22 function (`api.func`) bundling `src/hosted-app.ts` with `imports/maple-payments/manifest.json` and `data.zip`. `sharp` is not bundled, so `/graph/*.png` is unavailable on Vercel; the React UI uses the SVG explorer.
+
+- **Access:** Ripple's access code (`RIPPLE_ACCESS_CODE`) is checked at `/login` and sets a signed HttpOnly session cookie (12 hours). Vercel SSO protection is disabled, so this code is the gate. `/login` has no rate limit yet. Mutations require `Origin` equal to `RIPPLE_PUBLIC_URL`.
+- **DevRev auth:** the server uses one `DEVREV_TOKEN`, currently the DEVU-6 personal access token by user decision. It was exposed in a session log and should be rotated. `RIPPLE_ACTOR_IDS` and `RIPPLE_ASSIGNABLE_OWNER_IDS` are the actor and owner allowlists. Credentials are read only on the server and never reach the browser bundle.
+- **Investigator:** `src/hosted-agent.ts` is an in-process TypeScript port of the Python bridge: an MCP read-tool allowlist and exact revalidation against cited native records. Vercel runs no Python subprocess and uses no personal connector config. The Python path remains for local modes.
+- **Storage:** Supabase Postgres schema `ripple_hosted`, with RLS on and no `anon`/`authenticated` grants. It is separate from legacy `public` rows and the local schemas. Migrations were applied via Supabase MCP on 11 October 2026 (see `migrations/hosted-setup.md`). `DATABASE_CA_CERT` holds the CA certificate PEM.
+- **Worker:** Vercel runs no polling worker. After approval or reconcile, `workOnce` runs inline in the request. `/initialize` resumes pending or expired-lease jobs, and `/cron` does the same when called with `CRON_SECRET`.
+- **Writes:** enabled only when `RIPPLE_WRITES_ENABLED=true`, which is set in production.
+- **Approval flow:** the reviewer sees the exact title, body, part (CAPL-4 for ISS-42), owner, evidence and revision/digest. Title or body edits seal a new revision, and approval authorizes only that revision. Ripple never creates tickets on its own; a ticket is created only after approval in the UI. `action_key` is the DevRev `external_ref` plus a ledger fence against duplicates. Uncertain writes are reconciled with **Check write status**, never recreated. `works.create` sends `visibility: 1` (internal), per the DevRev OpenAPI `works-create-request-ticket`.
+- **Multi-issue:** `?issue=<DON or ISS-n>` opens any Team01 issue; ISS-42 (`RIPPLE_ISSUE_ID`) is the default.
+- **Snap-in:** `apps/ripple/snap-in` is now a minimal launcher card showing Ripple status and an **Open in Ripple** link. It calls `POST /native/status` (see `snap-in/BRIDGE_CONTRACT.md`) with a bridge proof signed by `RIPPLE_BRIDGE_SECRET` and the actor session token. It has no write controls. The keyring `ripple_bridge_secret` must equal `RIPPLE_BRIDGE_SECRET`, which must differ from `RIPPLE_SECRET`.
+
+Environment variable names (values are never committed or documented):
+
+| Variable | Purpose |
+| --- | --- |
+| `RIPPLE_SECRET` | Signs session and UI state; at least 32 characters. |
+| `RIPPLE_ACCESS_CODE` | Ripple's access code for `/login`. |
+| `RIPPLE_PUBLIC_URL` | Public origin; the mutation `Origin` check and `open_url`. |
+| `RIPPLE_BRIDGE_SECRET` | Verifies snap-in `/native/status` proofs; differs from `RIPPLE_SECRET`. |
+| `CRON_SECRET` | Guards `/cron`. |
+| `DEVREV_TOKEN` | Server-side DevRev credential. |
+| `DEVREV_WORKSPACE_ID` | Team01 workspace. |
+| `DEVREV_APP_URL` | Optional; builds ticket links (`<app>/works/<id>`). |
+| `RIPPLE_ACTOR_IDS` | Comma-separated actor DON allowlist. |
+| `RIPPLE_ASSIGNABLE_OWNER_IDS` | Comma-separated owner DON allowlist. |
+| `RIPPLE_ISSUE_ID` | Default issue. |
+| `RIPPLE_WRITES_ENABLED` | Must be `true` to enable approved writes. |
+| `DATABASE_URL` | Privileged Postgres connection for `ripple_hosted`. |
+| `DATABASE_CA_CERT` | PEM CA certificate for database TLS. |
+
+Optional: `RIPPLE_IMPORT_ROOT` overrides the directory containing the bundled Maple import.
+
+Verification: 126 tests pass (`npm test`). Remaining: real ticket creation awaits the user's approval in the UI; browser visual verification is not automated; `/graph/*.png` is not bundled on Vercel; `/login` has no rate limit.
+
+## Local React app
+
+Run `npm ci`, then `RIPPLE_PYTHON=/path/to/python3.11-or-newer npm run app:read` from the repository root and open `http://127.0.0.1:8788`. This pass focuses on read-only live investigation; approval-gated ticket creation runs only in the hosted Vercel deployment described above. The current ignored local configuration selects read-only mode for `npm run app` too. `npm run build:app` bundles React locally into `web/build`; browser assets require no CDN. The existing `npm run preview` remains the separate simulation lab.
+
+The React app uses the shared controller, v2 contract, source revalidation, sealed owner revisions, approval receipts and durable worker. The main workspace now contains an interactive evidence map with ID/customer/topic search, immediate record and relationship inspection, connection highlighting, a focused neighborhood view, source excerpts, pointer-centered zoom, drag panning, Fit, and an expanded viewer. Arrow keys pan; +/− zoom; 0 fits; Escape closes the viewer. Proposed-work mode connects every cited context record to its proposed ticket. Native DevRev cards retain their signed PNG. The issue heading displays native ISS-42 separately from imported source ISS-031, so the title no longer appears to identify a different issue. Set `RIPPLE_LOCAL_ISSUE_ID` in `.env.local` to the verified native DON to change the starting issue; the demo is configured for `don:core:dvrv-us-1:devo/1mWckJhGyy:issue/42`. **Edit goal & scope** creates a fresh investigated plan; owner changes seal a new revision. Approval always applies to the complete saved revision. Rejection creates no work.
+
+Copy `local.env.example` to the ignored `.env.local` for local configuration. Four explicit modes are available:
+
+| Mode | Investigation | Ticket creation |
+| --- | --- | --- |
+| `read-only` (`npm run app:read`) | Current DevRev MCP evidence and local contract planner | No write controls, server rejects decision/owner actions, worker disabled |
+| `fixture` (fallback when no mode configured) | Offline contract fixtures | Durable `PREVIEW-*` simulation |
+| `live-preview` (`npm run app:live`) | Existing personal MCP reader and local outcome planner; Python 3.11+ | Durable `PREVIEW-*` simulation |
+| `connected` | Configured `AGENT_URL` implementing `/investigate` and `/revalidate` | Existing native DevRev adapter, after signed explicit approval |
+
+Connected mode requires the server-only actor token, workspace, actor/owner allowlists, issue DON, MCP URL and agent bearer in `local.env.example`. It verifies authenticated identity and issue access, and never falls back to fixture or personal-connector credentials. This single-user local server binds to loopback and checks Host and mutation Origin; it is not a hosted multi-user login service.
+
+Without `DATABASE_URL`, reviews, decisions, worker jobs, simulator native records and the signing key persist under ignored `.preview-data`. Restarting preserves reviews and reconciles existing simulation IDs. Do not run two local processes against the same PGlite directory. With `DATABASE_URL`, the same transaction/ledger implementation uses PostgreSQL/Supabase. Fixture, live-preview and read-only use separate schemas, preventing reviews or jobs from crossing modes. Local schema migrations are applied automatically; connected/public migrations remain explicit via `npm run migrate`. Use a stable `RIPPLE_SECRET` and a privileged server database connection: RLS is enabled with no browser policies, and `anon`/`authenticated` grants are revoked.
+
+On 11 October 2026, the configured Supabase MCP project `qqzqgmlgzxkevgswnkzj` received migrations 001–004, including local mode isolation. Browser roles have no table access. The local app was verified against that database using the session pooler and certificate-verified TLS: intake, fresh goal review, owner revision, explicit simulated approval, completed worker result, and process restart all persisted. The ignored `.env.local` contains the server connection; download the official CA from Database Settings and configure `sslmode=verify-full&sslrootcert=/absolute/path/to/certificate`. See [Supabase connection guidance](https://supabase.com/docs/guides/database/connecting-to-postgres). No database credential is bundled into React.
+
+Current integration discovery: DevRev MCP verified Team01 (`1mWckJhGyy`), actor DEVU-6, ISS-42, and active Ripple snap-in `639fd639-f6d7-454c-8885-e5c944d17092` (modified 11 October). Its deployed version `5314e367-72bf-42c6-8eec-b67afe87d115` wires `ripple_initialize` and `ripple_action`; its manifest grants read scopes, with empty configured inputs. Read-only inspection of deployed artifact/360 confirms actor-scoped MCP retrieval and an internal v2 investigation, returned as rendered Snap cards. Proposed work is display-only: those handlers contain no owner revision, approval or ticket-write path. The bundled service bridge exists but is not called by the deployed function factory. MCP exposes no function invocation/API-trigger configuration tool. The user confirmed this is the current deployed capability and deferred building ticket creation and API triggers to a later run. `connected` therefore remains a configured contract boundary, not proof that this app calls the hosted flow. No teammate agent or snap-in configuration was changed.
+
+Local verification includes HTTP intake → citation → owner revision → approval → worker results, rejection/no jobs, duplicate approval, cross-origin blocking, and disk database restart. The read-only app uses current MCP evidence with the local planner, as its on-screen provenance explains; it does not invoke the hosted snap function. Native ticket creation is handled by the hosted Vercel deployment, after explicit approval. Snap-component development is outside this local app change.
+
+For the current change summary, browser acceptance checklist, and remaining rollout work, see [the handoff](../../docs/ripple-handoff.md).
 
 The implementation renders native Snap-kit cards on an issue, accepts a validated v2 investigation, saves owner revisions, and executes an approved batch as internal DevRev tickets. Resolving the current issue is the default goal: **Investigate issue** reads the native title and anchors retrieval to its description and acceptance criteria. A collapsed **Refine goal or add constraints** form is optional; a blank refined goal uses the issue. Re-investigation preserves a saved refinement, and **Fresh review** starts again from the issue. Brazil creates one ticket containing scheduler investigation, replay-safety checks, and customer-update drafts. The separate-work fixture contains three tickets.
 
@@ -42,13 +113,13 @@ The original `npm run preview` remains an offline fixture lab, including multipl
 
 ## Deployment
 
-1. Provide PostgreSQL and an HTTPS service origin. Copy `.env.example` to an ignored local configuration file and replace placeholders. Generate a new random `RIPPLE_SECRET`; keep it stable across worker restarts. Use a protected secret manager in deployment. Run `node --env-file=apps/ripple/.env apps/ripple/src/migrate.ts`, then `node --env-file=apps/ripple/.env apps/ripple/src/main.ts`. Migrations are idempotent. The service starts a durable polling worker; multiple instances claim jobs using PostgreSQL row locks and leases. The Dockerfile builds from the repository root; put an HTTPS reverse proxy in front of it.
+1. Provide PostgreSQL and an HTTPS service origin. Copy `.env.example` to an ignored local configuration file and replace placeholders. Generate a new random `RIPPLE_SECRET`; keep it stable across worker restarts. Use a protected secret manager in deployment. Run `node --env-file=apps/ripple/.env apps/ripple/src/migrate.ts`, then `node --env-file=apps/ripple/.env apps/ripple/src/main.ts`. Migrations are idempotent. On a container host the service starts a durable polling worker (Vercel runs none; see the Vercel section); multiple instances claim jobs using PostgreSQL row locks and leases. The Dockerfile builds from the repository root; put an HTTPS reverse proxy in front of it.
 2. Supply an actor-delegated DevRev MCP endpoint. Start the included agent with `AGENT_BEARER=<protected-secret> RIPPLE_PYTHON=/path/to/python3 npm run start:agent` and point `AGENT_URL` at its protected HTTPS origin (loopback HTTP is supported locally). A chat connector session or a developer PAT is not a deployment credential. Production startup requires the MCP URL and agent URL; fixture adapters are never a production fallback. Owner search discovers `hybrid_search`, first discovers available actions and actual create/lookup schemas, and stops if required ticket fields differ. It explicitly includes authenticated self, then verifies candidates against current native records and the installation's assignment policy.
 3. Set `RIPPLE_ACTOR_IDS` and `RIPPLE_ASSIGNABLE_OWNER_IDS` to the administrator-reviewed allowed actor and owner DONs for this installation. These narrow the native actor's authority; they do not grant native permissions. The first slice restricts plan access to its creating actor. Native source reads and active-owner checks run at review, approval and execution. DevRev enforces ticket-write/assignment permissions using the delegated actor token. The current connector exposes no reliable dry-run assignment-permission endpoint; verify that policy with actual native roles before enabling approval in Team01.
-4. Create a developer **Snap-in Secret** keyring named `ripple_bridge_secret` with the same secret as `RIPPLE_SECRET`. Configure `ripple_service_url` to the HTTPS origin. Build the package with `npm run build:snap-in`; install `snap-in/manifest.yaml` and `snap-in/build.tar.gz` using the documented DevRev snap-in version/install flow. The package exports the official `functionFactory` shape and two user-triggered functions. It forwards only the platform actor-session token and issue context, signs the bridge request, and returns `snap_kit_body.body.snaps`. No timeline entries are used to emulate the component.
+4. Create a developer **Snap-in Secret** keyring named `ripple_bridge_secret` with the same value as `RIPPLE_BRIDGE_SECRET` (not `RIPPLE_SECRET`). Configure `ripple_service_url` to the HTTPS origin. Build with `npm run build:snap-in`; install `snap-in/manifest.yaml` and `snap-in/build.tar.gz` using the DevRev CLI (`npm install -g devrev`; Homebrew is no longer supported). The snap-in is a minimal launcher: it calls the signed `POST /native/status` bridge with the platform actor token, shows the issue's Ripple status in one snap-kit card, and offers an **Open in Ripple** link button (`href`) to `${ripple_service_url}/?issue=<issue DON>`. If status fails the link still renders with a "status unavailable" note. Review and approval happen only in the web app; the snap-in requests `issue:read` and `dev_user:read` only.
 5. In Team01, verify installation rights, requested scope names against the current API-to-scope reference, initializer context, issue surface rendering on ISS-42, native owner-picker/form payloads, approval disabling while an owner revision is pending, and image fetching from the scoped HTTPS URL. Inspect grants using a fresh second-user session: that user cannot read the first user's plan, may create their own review if enabled, and cannot approve a copied signed control. Scope/actor-context behavior and rendering are rollout gates, not assertions from the local preview.
 
-This checkout has an integrated local agent/browser demo but no configured hosted agent/service/PostgreSQL instance or DevRev CLI. The package is built locally; it has not been installed in Team01, and a real ticket creation or second-user browser test has not been performed. No live business work was created by implementation checks.
+The local React app has verified Supabase persistence. An active read-only Ripple snap-in is installed in Team01; the installed Team01 snap-in was read-only. The repository snap-in is now a launcher card, and the hosted Vercel app handles approval and ticket creation. Second-user browser acceptance remains a future rollout check. No live business work was created by implementation checks.
 
 ## Agent boundary
 
@@ -62,7 +133,7 @@ The shared source of truth is `contracts/investigation.ts` with exact version `2
 - `POST /investigate` returns a complete validated `InvestigationResponse`. It must retain the request ID, outcome, constraints, reference date when supplied, and include the native starting issue in its Context Bundle. The agent owns retrieval, evidence validation, gaps, and decomposition into up to eight internal tickets. A null reference date asks the agent to resolve the investigation's date; the Brazil fixture deliberately chooses March 24, 2026 and is labelled as a replay.
 - `POST /revalidate` receives the complete sealed response after authoritative IDs, owner edits and digest changes. Return `{ valid: true, investigation_id, plan_digest }`, where `plan_digest` is the supplied graph digest or `null` for a response with no graph. The included implementation authenticates the actor, rereads exact cited native IDs and related source mappings, checks full original hashes and excerpts, and reopens checksum-verified archive documents. New read timestamps are allowed while reviewed provenance stays sealed. It does not rerun ranked search or derive an as-of cutoff from the resolved response date. On changed evidence return `{ valid: false, code: "evidence_changed" }`; use `permission_denied` for revoked access. The service blocks approval/execution on either. Credentials stay between trusted servers and are never included in UI state.
 
-The service owns plan IDs, canonical sealing, original expiry (capped at 30 minutes), owner revisions, decisions and execution. Content or split changes start a fresh investigation. The bridge permits 90 seconds and the agent request 60 seconds; if real investigations exceed this, add an asynchronous investigation job and polling state before rollout. Approval execution is already asynchronous.
+The service owns plan IDs, canonical sealing, original expiry (capped at 30 minutes), owner revisions, decisions and execution. Reviewers may edit a ticket's title and body (`content_edits`, same limits as the plan schema) before approving; each edit seals a new revision and digest like an owner change, and approval covers exactly the edited text. The `action_key`/`external_ref` stays stable, so a ticket already created from an earlier revision turns a later edited approval into `action_conflict` rather than a duplicate. Evidence, part or split changes still start a fresh investigation. The bridge permits 90 seconds and the agent request 60 seconds; if real investigations exceed this, add an asynchronous investigation job and polling state before rollout. Approval execution is already asynchronous.
 
 ## Durable decisions and writes
 
@@ -80,6 +151,6 @@ Native ticket creation is the sole approved work operation. Severity/stage, nati
 
 Tests include the 19 preserved v1 checks, v2 single/multiple-ticket fixtures and semantic guards, PostgreSQL-schema integration workflows, concurrent revision/decision conflicts, no-write rejection/expiry/access/evidence failures, crash and timeout fencing, partial results, graph PNG generation and grants, native adapter readback, and actor-context bridge signing. PGlite runs the same migration/SQL locally; deployment still needs real PostgreSQL multi-process and fresh-session DevRev acceptance tests.
 
-The combined implementation passed 88 TypeScript tests, 15 offline Python checks, TypeScript validation and the Snap-in build. Live read-only browser verification on ISS-42 opened an exact source citation, saved the verified current reader as owner, approved the sealed revision and completed one simulated `PREVIEW-1` ticket. Native retrieval and exact-source revalidation both succeeded; no live DevRev work was created.
+The local React change passed 95 TypeScript tests, 15 offline Python checks, TypeScript validation and the React build; the current suite passes 126 tests (see the Vercel section). The earlier native package validation also passed its Snap-in build. Earlier live-preview verification on ISS-42 opened an exact source citation, saved the current reader as simulated owner and completed one approved `PREVIEW-1` ticket. The final read-only React mode verified current issue intake, saved investigation reload, graph node/relationship selection, wheel zoom/Fit and exact native excerpts; it has no owner or approval controls. Native retrieval and exact-source revalidation both succeeded; no live DevRev work was created.
 
 Official integration references: [Snap Components](https://developer.devrev.ai/snapin-development/references/snap-components), [Snap-kit](https://developer.devrev.ai/snapin-development/references/snapkit), [Function invocation](https://developer.devrev.ai/snapin-development/references/function-invocation), [Manifest](https://developer.devrev.ai/snapin-development/references/manifest), [Scopes](https://developer.devrev.ai/snapin-development/references/scopes), [API-to-scope reference](https://developer.devrev.ai/snapin-development/references/scope-reference), [official function factory](https://github.com/devrev/snap-in-examples/blob/main/1-starter/code/src/function-factory.ts).

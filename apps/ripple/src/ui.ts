@@ -77,16 +77,17 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
     ...data.edges.map(e => ({ value: e.id, label: `${data.nodes.find(n => n.id === e.from)?.subtitle} → ${data.nodes.find(n => n.id === e.to)?.subtitle}` }))];
   const selectedEntity = response.context_bundle.entities.find(e => e.entity_id === state.view.selected);
   const selectedRel = response.context_bundle.relationships.find(e => e.relationship_id === state.view.selected);
+  const selectedEdge = data.edges.find(e => e.id === state.view.selected);
   const selectedAction = graph?.actions.find(a => a.action_id === state.view.selected || `plan-${a.action_id}` === state.view.selected);
   const selectedDependency = graph?.dependencies[Number(state.view.selected?.replace('dependency-', ''))];
-  const selectedEvidence = selectedRel?.evidence_ids ?? selectedAction?.evidence_ids ?? (selectedDependency ? [...new Set(graph?.actions.filter(a =>
+  const selectedEvidence = selectedEdge?.evidenceIds ?? selectedRel?.evidence_ids ?? selectedAction?.evidence_ids ?? (selectedDependency ? [...new Set(graph?.actions.filter(a =>
     [selectedDependency.prerequisite_action_id, selectedDependency.dependent_action_id].includes(a.action_id)).flatMap(a => a.evidence_ids))] :
     response.context_bundle.evidence.filter(e => e.entity_id === selectedEntity?.entity_id).map(e => e.evidence_id));
   snaps.push(card('Impact graph', [
     ...(imageUrl ? [content({ type: 'image', image_url: imageUrl, alt_text: 'Issue, product parts, reports and accounts connected by cited relationships.', fill_container: true })] : []),
     actions(select('mode', [{ value: 'context', label: 'Context' }, { value: 'work', label: 'Proposed work' }], state.view.mode, block)),
     ...(selections.length ? [actions(select('selection', selections, state.view.selected, block))] : []),
-    content(plain(selectedRel ? `${selectedRel.basis.replaceAll('_', ' ')} · ${selectedRel.statement}` : selectedAction ? `Proposed work · ${selectedAction.title}` : selectedEntity ? selectedEntity.label
+    content(plain(selectedEdge ? `${selectedEdge.basis.replaceAll('_', ' ')} · ${selectedEdge.statement}` : selectedAction ? `Proposed work · ${selectedAction.title}` : selectedEntity ? selectedEntity.label
       : selectedDependency ? `Investigation order: ${selectedDependency.reason}` : 'Select a record or relationship to inspect its evidence.')),
     ...(selectedEvidence.length ? [actions(...selectedEvidence.map(id => button('evidence', citationLabel(response, id), block, id)))] : []),
   ]));
@@ -119,6 +120,16 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
       ...(plan?.state === 'review' || !plan ? [actions({ type: 'user_picker', action_id: `owner:${action.action_id}`, action_type: 'remote', block_id: block,
         user_types: ['dev_user'], max_selected_items: 1, initial_dev_users_selected_options: action.owner_id ? [action.owner_id] : [],
         placeholder: plain('Select current ticket owner') })] : []),
+      ...(plan?.state === 'review' ? [card('Edit ticket content', [
+        content(plain('Saving seals a new revision with a new digest. Approval then covers exactly the edited text.')),
+        { type: 'form', action_id: `content:${action.action_id}`, action_type: 'remote', block_id: block,
+          elements: [{ type: 'input_layout', label: plain('Title'), element: { type: 'plain_text_input', action_id: 'title',
+            action_type: 'client', initial_value: action.title, max_length: 200 } },
+          { type: 'input_layout', label: plain('Body (markdown)'), element: { type: 'plain_text_input', action_id: 'body_markdown',
+            action_type: 'client', multiline: true, initial_value: action.body_markdown, max_length: 4000 } }],
+          submit_action: { type: 'button', action_id: `content-save:${action.action_id}`, action_type: 'remote', block_id: block,
+            text: plain('Save as new revision'), style: 'default' },
+        } as Snap], true)] : []),
       card('Ticket details & acceptance checks', [content({ type: 'rich_text', text: action.body_markdown }),
         content(plain('Acceptance checks'), ...action.acceptance_checks.map(c => plain(`• ${c}`)))], true),
       card('Ticket evidence', [actions(...action.evidence_ids.map(id => button('evidence', citationLabel(response, id), block, id)))], true),

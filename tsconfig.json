@@ -1,6 +1,6 @@
 {
   "extends": "./contracts/tsconfig.json",
-  "compilerOptions": { "types": ["node"], "noUncheckedIndexedAccess": true },
-  "include": ["contracts/*.ts", "contracts/v1/*.ts", "apps/ripple/**/*.ts"],
+  "compilerOptions": { "types": ["node"], "noUncheckedIndexedAccess": true, "jsx": "react-jsx" },
+  "include": ["contracts/*.ts", "contracts/v1/*.ts", "apps/ripple/**/*.ts", "apps/ripple/**/*.tsx"],
   "exclude": ["node_modules", "apps/ripple/snap-in/build"]
 }

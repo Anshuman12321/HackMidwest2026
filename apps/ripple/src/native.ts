@@ -4,6 +4,13 @@ import { RippleError } from './types.ts';
 import type { Auth, Investigator, NativeGateway, Owner, Ticket, TicketInput } from './types.ts';
 
 type Policy = { workspace: string; actors: Set<string>; owners: Set<string> };
+// works.create takes the numeric visibility uenum {1: internal, 2: external}; reads may return
+// {id, label}. Normalise every representation to the numeric ID Ripple fingerprints.
+const VISIBILITY_NAMES: Record<string, number> = { internal: 1, external: 2 };
+const visibilityId = (value: any): 1 => {
+  const v = value && typeof value === 'object' ? (value.id ?? value.label) : value;
+  return (typeof v === 'string' ? VISIBILITY_NAMES[v] ?? v : v) as 1;
+};
 type OwnerSearch = (auth: Auth, query: string) => Promise<string[]>;
 export class DevRevGateway implements NativeGateway {
   policy: Policy; base: string; search?: OwnerSearch;
@@ -29,6 +36,12 @@ export class DevRevGateway implements NativeGateway {
     const { dev_user: user } = await this.call({ token }, 'dev-users.self', {});
     if (!user || user.state !== 'active' || !user.id?.includes(`:devo/${this.policy.workspace}:devu/`) || !this.policy.actors.has(user.id))
       throw new RippleError('permission_denied', 'This user is not enabled for Ripple in this workspace.');
+    return { token, workspace: this.policy.workspace, actorId: user.id };
+  }
+  async verifyMember(token: string): Promise<Auth> {
+    const { dev_user: user } = await this.call({ token }, 'dev-users.self', {});
+    if (!user || user.state !== 'active' || !user.id?.includes(`:devo/${this.policy.workspace}:devu/`))
+      throw new RippleError('permission_denied', 'This user is not an active member of this workspace.');
     return { token, workspace: this.policy.workspace, actorId: user.id };
   }
   async issue(auth: Auth, id: string) {
@@ -81,7 +94,7 @@ export class DevRevGateway implements NativeGateway {
     return { native: { id: work.id, display_id: work.display_id, url: null }, input: {
       type: 'ticket', title: work.title, body: work.body, external_ref: work.external_ref,
       applies_to_part: work.applies_to_part?.id, owned_by: work.owned_by?.map((u: any) => u.id),
-      visibility: typeof work.visibility === 'object' ? work.visibility.id : work.visibility,
+      visibility: visibilityId(work.visibility),
     } };
   }
   async findTicket(auth: Auth, key: string): Promise<Ticket | null> {
@@ -91,6 +104,7 @@ export class DevRevGateway implements NativeGateway {
     return works.length ? this.parseTicket(works[0]) : null;
   }
   async createTicket(auth: Auth, input: TicketInput): Promise<Ticket> {
+    // Ripple only creates internal tickets: works-create-request-ticket.visibility is int64 uenum 1.
     const { work } = await this.call(auth, 'works.create', input);
     // Read back the object rather than assuming the create response contains all fields.
     if (!work?.id) throw new RippleError('ambiguous_write', 'Ticket creation returned no ID.', 'reconcile_first');
