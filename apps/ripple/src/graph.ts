@@ -27,7 +27,7 @@ export function graphData(response: InvestigationResponse, view: View) {
   const counts = [0, 0, 0];
   nodes.forEach(n => { n.x = 35 + n.column * 295; n.y = 64 + counts[n.column]! * 108; counts[n.column] = counts[n.column]! + 1; });
   return { nodes, edges: edges.filter(e => nodes.some(n => n.id === e.from) && nodes.some(n => n.id === e.to)),
-    width: 900, height: Math.max(330, Math.max(...counts) * 108 + 90) };
+    width: view.mode === 'work' ? 620 : 900, height: Math.max(330, Math.max(...counts) * 108 + 90) };
 }
 function wrap(text: string): string[] {
   const words = text.replace(/^\[Maple[^\]]*\]\s*/, '').split(/\s+/), lines: string[] = [];
@@ -53,7 +53,7 @@ export function graphSvg(response: InvestigationResponse, view: View): string {
   }).join('');
   const cards = nodes.map(n => {
     const selected = n.id === view.selected || selectedRelation?.from === n.id || selectedRelation?.to === n.id;
-    const fill = n.kind === 'proposed' ? '#fff9cf' : selected ? '#fffde7' : '#fff';
+    const fill = selected ? '#fff8b2' : n.kind === 'proposed' ? '#fff9cf' : '#fff';
     const badge = n.kind === 'account' ? '#2456c8' : n.kind === 'proposed' ? '#665600' : '#737373';
     return `<g><rect x="${n.x}" y="${n.y}" width="230" height="80" rx="10" fill="${fill}" stroke="${selected ? '#161616' : '#e0e2e4'}" stroke-width="${selected ? 2 : 1}"/>
       <text x="${n.x + 13}" y="${n.y + 19}" font-size="10" fill="${badge}" letter-spacing=".5">${escapeXml(n.subtitle)}</text>
@@ -64,7 +64,7 @@ export function graphSvg(response: InvestigationResponse, view: View): string {
     <text x="35" y="29" font-size="11" fill="#737373">${view.mode === 'context' ? 'ISSUE &amp; PRODUCT CONTEXT' : 'EXISTING CONTEXT'}</text>
     <text x="330" y="29" font-size="11" fill="#737373">${view.mode === 'context' ? 'CUSTOMER REPORTS' : 'PROPOSED EXECUTION'}</text>
     ${view.mode === 'context' ? '<text x="625" y="29" font-size="11" fill="#737373">ACCOUNTS</text>' : ''}
-    ${line}${cards}<text x="35" y="${height - 18}" font-size="10" fill="#737373">${view.mode === 'context' ? 'Solid: documented relationship · Dashed: inference' : 'Dashed: proposed context / investigation order · Native dependency links are not created'}</text></g></svg>`;
+    ${line}${cards}<text x="35" y="${height - 18}" font-size="10" fill="#737373">${view.mode === 'context' ? 'Solid: documented relationship · Dashed: inference' : 'Dashed: proposed context / investigation order'}</text></g></svg>`;
 }
 export async function graphPng(response: InvestigationResponse, view: View): Promise<Buffer> {
   return sharp(Buffer.from(graphSvg(response, view))).png().toBuffer();

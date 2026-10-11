@@ -1,11 +1,12 @@
 # Ripple — Hack Midwest 2026
 
-Ripple starts with a business outcome, finds relevant organizational evidence, and prepares the right investigation work in DevRev for human review.
+Ripple starts with a DevRev issue, finds relevant organizational evidence, and prepares the next investigation work for human review. Resolving the issue is the business outcome; entering a separate goal is optional.
 
 - [Data, completed work, UI instructions, and integration handoff](docs/data-and-integrations.md)
 - [Agent architecture and build starting point](docs/agent-build-guide.md)
 - [Shared investigation contract, exact types, and validated examples](contracts/README.md)
 - [Native Ripple UI, service, preview, and deployment guide](apps/ripple/README.md)
+- [Current implementation and DevRev rollout handoff](docs/ripple-handoff.md)
 - [Interactive architecture site](https://ripple-demo-architecture.pearlyperch6.chatgpt.site/)
 - [Imported Maple Payments dataset and tools](imports/maple-payments/README.md)
 - [Original vision](idea.md)

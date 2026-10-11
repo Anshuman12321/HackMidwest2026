@@ -31,3 +31,15 @@ test('owner search explicitly includes authenticated self and rejects inactive o
   gateway.responses['dev-users.get'].dev_user.state = 'inactive';
   assert.deepEqual(await gateway.owners(auth, ''), []);
 });
+
+test('issue context comes from the accessible native record and does not leak into wire identity', async () => {
+  const gateway = new RecordingGateway();
+  const native = fixture().context_bundle.entities.find(e => e.kind === 'issue')!.native!;
+  gateway.responses['works.get'] = { work: { ...native, type: 'issue', title: 'The current issue title', body: 'Description and acceptance criteria' } };
+  assert.deepEqual(await gateway.issueBrief(auth, native.id), { native, title: 'The current issue title', body: 'Description and acceptance criteria' });
+  assert.deepEqual(await gateway.issue(auth, native.id), native);
+  gateway.responses['works.get'].work.title = '';
+  await assert.rejects(gateway.issueBrief(auth, native.id), /needs a title/);
+  gateway.responses['works.get'].work.type = 'ticket';
+  await assert.rejects(gateway.issueBrief(auth, native.id), /accessible issue/);
+});

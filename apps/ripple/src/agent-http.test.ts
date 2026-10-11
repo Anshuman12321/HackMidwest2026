@@ -92,13 +92,14 @@ test('browser controller completes real planner over HTTP: investigate, citation
   const s = await setup(t), db = await TestDatabase.create(); t.after(() => db.pg.close());
   const native = new FakeNative(), service = new RippleService(new Store(db), native, s.client, new Secrets(randomUUID() + randomUUID()));
   const controller = new Controller(service, 'http://127.0.0.1:8788', true), issue = request().scope_hints.starting_object!.id;
-  const intake = flatten((await controller.initialize(auth, issue)).snaps).find(n => n.type === 'form')!;
-  let view = await controller.action(auth, { action_id: intake.action_id, block_id: intake.block_id,
-    value: { outcome: { value: request().outcome }, constraints: { value: 'Keep customer updates as drafts' } } }, issue);
+  const investigate = flatten((await controller.initialize(auth, issue)).snaps).find(n => n.type === 'button' && String(n.action_id).startsWith('investigate:'))!;
+  let view = await controller.action(auth, { action_id: investigate.action_id, block_id: investigate.block_id, value: investigate.value }, issue);
   assert.ok(!JSON.stringify(view).includes('could not complete'));
   const citation = flatten(view.snaps).find(n => String(n.action_id).startsWith('evidence:'))!;
   assert.ok(citation); const opened = await controller.action(auth, { action_id: citation.action_id, block_id: citation.block_id, value: citation.value }, issue);
-  assert.ok(flatten(opened.snaps).some(n => n.type === 'plain_text' && n.text === (sources().records[0]!.original as Record<string, unknown>).description));
+  const saved = await db.connection(sql => sql.query('SELECT response FROM ripple_plans'));
+  const excerpt = saved.rows[0]!.response.context_bundle.evidence.find((e: { evidence_id: string }) => e.evidence_id === citation.value).excerpt.text;
+  assert.ok(flatten(opened.snaps).some(n => n.type === 'plain_text' && n.text === excerpt));
   const owner = flatten(view.snaps).find(n => n.type === 'user_picker')!;
   view = await controller.action(auth, { action_id: owner.action_id, block_id: owner.block_id, value: [actor] }, issue);
   const approve = flatten(view.snaps).find(n => String(n.action_id).startsWith('approve:'))!;

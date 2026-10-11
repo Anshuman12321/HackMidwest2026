@@ -1,6 +1,9 @@
 import type { InvestigationRequest, InvestigationResponse, NativeObjectSchema, Task, ExecutionResult, FailureSchema } from '../../../contracts/investigation.ts';
 import type { z } from 'zod';
 export type NativeObject = z.infer<typeof NativeObjectSchema>;
+export type IssueBrief = { native: NativeObject; title: string; body: string };
+export const defaultConstraints = ['Do not change production settings', 'Keep customer updates as drafts'];
+export const issueOutcome = (issue: IssueBrief) => `Resolve ${issue.native.display_id}: ${issue.title}`.slice(0, 2000);
 export type Failure = z.infer<typeof FailureSchema>;
 export type Auth = { workspace: string; actorId: string; token: string };
 export type Owner = { id: string; name: string; displayId: string };
@@ -9,6 +12,7 @@ export type Ticket = { native: NativeObject; input: TicketInput };
 export interface NativeGateway {
   authenticate(token: string): Promise<Auth>;
   issue(auth: Auth, id: string): Promise<NativeObject>;
+  issueBrief(auth: Auth, id: string): Promise<IssueBrief>;
   owners(auth: Auth, query: string): Promise<Owner[]>;
   authorize(auth: Auth, response: InvestigationResponse, startingIssue: string, checkOwners: boolean): Promise<void>;
   findTicket(auth: Auth, key: string): Promise<Ticket | null>;

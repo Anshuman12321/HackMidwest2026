@@ -1,6 +1,8 @@
 # Ripple issue brief
 
-The implementation renders native Snap-kit cards on an issue, accepts a validated v2 investigation, saves owner revisions, and executes an approved batch as internal DevRev tickets. Brazil creates one ticket containing scheduler investigation, replay-safety checks, and customer-update drafts. The separate-work fixture contains three tickets.
+For the current change summary, browser acceptance checklist, and remaining DevRev installation work, see [the handoff](../../docs/ripple-handoff.md).
+
+The implementation renders native Snap-kit cards on an issue, accepts a validated v2 investigation, saves owner revisions, and executes an approved batch as internal DevRev tickets. Resolving the current issue is the default goal: **Investigate issue** reads the native title and anchors retrieval to its description and acceptance criteria. A collapsed **Refine goal or add constraints** form is optional; a blank refined goal uses the issue. Re-investigation preserves a saved refinement, and **Fresh review** starts again from the issue. Brazil creates one ticket containing scheduler investigation, replay-safety checks, and customer-update drafts. The separate-work fixture contains three tickets.
 
 ## Run and inspect
 
@@ -16,7 +18,11 @@ npm run preview
 
 Open `http://127.0.0.1:8788`. The preview uses the production controller, renderer, guards, SQL schema and worker with an embedded PostgreSQL test database and explicit fixture adapters. It makes no network calls to DevRev or the agent. Its in-memory results are labelled `PREVIEW-*`; they are not native work IDs. Choose the separate-work fixture before investigating to demonstrate a partial batch. Choose timeout-after-creation before approval, then **Check write status** to see reconciliation without another create. Restarting the preview process clears its simulated state.
 
-The white cards, compact actions, graph selection and yellow graph highlighting follow the three HTML references. Native DevRev controls inherit platform styling. This local renderer approximates that styling; it does not verify native component rendering.
+The preview follows `references/ripple-devrev-app.html` with a dark workspace rail, a minimal issue document, and a compact Ripple panel. Its editorial hierarchy uses restrained type, thin dividers, yellow primary actions, collapsible evidence/source details, and clear approval/results. After investigation, issue intake collapses to put findings first. The expanded preview graph supports node and relationship selection, citations, zoom, keyboard dismissal, and responsive layout. It uses the same signed controller actions and graph data as the native cards. Native DevRev controls inherit platform styling; the browser shell and expanded dialog belong to the local preview and do not establish native rendering or a native graph modal.
+
+The issue document and Ripple panel scroll independently on desktop; narrow layouts use page scrolling and retain preview controls. Step buttons navigate to available sections. The graph thumbnail opens the viewer, whose canvas and inspector scroll independently. Requests disable only conflicting action controls, leaving navigation, disclosures, scrolling and dialog dismissal available. The viewer preserves selection focus and inspector position through updates; **Fit** uses its actual available space.
+
+Preview HTML/CSS/JavaScript are read when the process starts. Restart the preview after editing those assets, then reload the browser. To avoid an occupied default port, run `PREVIEW_PORT=8798 npm run preview` and open `http://127.0.0.1:8798`; restarting also clears simulated reviews and writes.
 
 ## Integrated local browser demo
 
@@ -74,6 +80,6 @@ Native ticket creation is the sole approved work operation. Severity/stage, nati
 
 Tests include the 19 preserved v1 checks, v2 single/multiple-ticket fixtures and semantic guards, PostgreSQL-schema integration workflows, concurrent revision/decision conflicts, no-write rejection/expiry/access/evidence failures, crash and timeout fencing, partial results, graph PNG generation and grants, native adapter readback, and actor-context bridge signing. PGlite runs the same migration/SQL locally; deployment still needs real PostgreSQL multi-process and fresh-session DevRev acceptance tests.
 
-The combined implementation passed 84 TypeScript tests, 15 offline Python checks, TypeScript validation and the Snap-in build. Live read-only browser verification on ISS-42 opened an exact source citation, saved the verified current reader as owner, approved the sealed revision and completed one simulated `PREVIEW-1` ticket. Native retrieval and exact-source revalidation both succeeded; no live DevRev work was created.
+The combined implementation passed 88 TypeScript tests, 15 offline Python checks, TypeScript validation and the Snap-in build. Live read-only browser verification on ISS-42 opened an exact source citation, saved the verified current reader as owner, approved the sealed revision and completed one simulated `PREVIEW-1` ticket. Native retrieval and exact-source revalidation both succeeded; no live DevRev work was created.
 
 Official integration references: [Snap Components](https://developer.devrev.ai/snapin-development/references/snap-components), [Snap-kit](https://developer.devrev.ai/snapin-development/references/snapkit), [Function invocation](https://developer.devrev.ai/snapin-development/references/function-invocation), [Manifest](https://developer.devrev.ai/snapin-development/references/manifest), [Scopes](https://developer.devrev.ai/snapin-development/references/scopes), [API-to-scope reference](https://developer.devrev.ai/snapin-development/references/scope-reference), [official function factory](https://github.com/devrev/snap-in-examples/blob/main/1-starter/code/src/function-factory.ts).

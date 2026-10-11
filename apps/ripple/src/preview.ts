@@ -54,7 +54,7 @@ const app = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && path === '/config') return json(res, { live,
       label: live ? 'LIVE READS · SIMULATED WRITES' : 'LOCAL FIXTURE PREVIEW',
-      issue: await native.issue(auth, issue), owners: await native.owners(auth, '') });
+      issue: await native.issue(auth, issue), issue_brief: await native.issueBrief(auth, issue), owners: await native.owners(auth, '') });
     if (req.method === 'GET' && path === '/initialize') return json(res, await controller.initialize(auth, issue));
     if (req.method === 'POST') {
       const origin = req.headers.origin;

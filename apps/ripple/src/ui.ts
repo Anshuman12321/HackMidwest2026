@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { InvestigationResponse } from '../../../contracts/investigation.ts';
-import type { Owner, Plan, View } from './types.ts';
+import type { Owner, Plan, View, IssueBrief } from './types.ts';
+import { defaultConstraints, issueOutcome } from './types.ts';
 import { graphData } from './graph.ts';
 export type Snap = { type: string; [key: string]: unknown };
 export type UIState = { workspace: string; actorId: string; issue: string; planId: string | null;
@@ -12,7 +13,10 @@ const card = (title: string, elements: Snap[], collapsed = false): Snap => ({ ty
 const actions = (...elements: Snap[]): Snap => ({ type: 'actions', direction: 'row', elements });
 const citationLabel = (r: InvestigationResponse, id: string) => {
   const e = r.context_bundle.evidence.find(e => e.evidence_id === id);
-  return r.context_bundle.entities.find(n => n.entity_id === e?.entity_id)?.native?.display_id ?? e?.source_ref.record_id ?? id;
+  const record = r.context_bundle.entities.find(n => n.entity_id === e?.entity_id)?.native?.display_id ?? e?.source_ref.record_id ?? id;
+  const field = e?.excerpt.field_path.split('.').at(-1);
+  const label = field === 'components' ? 'part' : field === 'account_id' ? 'account' : field === 'updated_at' ? 'source date' : null;
+  return label ? `${record} · ${label}` : record;
 };
 const button = (id: string, text: string, block: string, value = id, disabled = false): Snap => ({ type: 'button',
   action_id: `${id}:${randomUUID()}`, action_type: 'remote', block_id: block, text: plain(text), value, disabled,
@@ -31,28 +35,41 @@ export function bindState(state: UIState, response: InvestigationResponse): UISt
     digest: response.action_graph?.plan_digest ?? null, decisionKey: randomUUID() };
 }
 export function renderBrief(options: { state: UIState; signedState: string; response?: InvestigationResponse;
-  plan?: Plan; owners?: Owner[]; imageUrl?: string; error?: string; preview?: boolean | 'live' }): { snaps: Snap[] } {
-  const { state, signedState: block, response, plan, owners = [], imageUrl, error, preview } = options;
+  plan?: Plan; owners?: Owner[]; imageUrl?: string; error?: string; issue?: IssueBrief; preview?: boolean | 'live' }): { snaps: Snap[] } {
+  const { state, signedState: block, response, plan, owners = [], imageUrl, error, issue, preview } = options;
   const graph = response?.action_graph;
   const snaps: Snap[] = [];
-  if (preview) snaps.push(card(preview === 'live' ? 'Live DevRev reads; simulated ticket creation' : 'Local fixture preview',
-    [content(plain(preview === 'live' ? 'Source access is checked using the local connector. Approval creates PREVIEW tickets only. No DevRev work is created.' : 'This preview simulates the workflow. It cannot create DevRev work.'))]));
   if (error) snaps.push(card('Review needed', [content(plain(error)), actions(button('refresh', 'Refresh review', block))]));
-  snaps.push(card('Ripple · issue brief', [content(plain(response?.outcome.statement ?? 'Restore Brazil subscription renewals without double billing'),
-    plain('Issue → Findings → Impact → Review → Execution')),
-    ...(!response || plan?.state === 'review' ? [{ type: 'form', action_id: 'intake', action_type: 'remote', block_id: block,
-      elements: [{ type: 'input_layout', label: plain('Business outcome'), element: { type: 'plain_text_input',
-        action_id: 'outcome', action_type: 'client', initial_value: response?.outcome.statement ?? 'Restore Brazil subscription renewals without double billing', max_length: 2000 } },
-        { type: 'input_layout', label: plain('Constraints (one per line)'), element: { type: 'plain_text_input', action_id: 'constraints',
-          action_type: 'client', multiline: true, initial_value: response?.outcome.constraints.join('\n') ?? 'Do not change production settings\nKeep customer updates as drafts' } }],
-      submit_action: button('investigate', response ? 'Investigate again' : 'Investigate issue', block),
-    } as Snap] : [])]));
+  const goal = issue ? issueOutcome(issue) : `Resolve ${state.issue}`;
+  const editable = !response || plan?.state === 'review' || !graph;
+  snaps.push(card('Issue context', [
+    content(plain(issue?.title ?? response?.outcome.statement ?? 'Investigate this issue'),
+      plain(response ? response.outcome.statement === goal ? 'Review the evidence and proposed next work for this issue.' : response.outcome.statement : 'Resolving this issue is the goal. Ripple will trace the evidence and propose the next work.'),
+      ...(preview ? [plain(preview === 'live' ? 'Live DevRev reads; simulated ticket creation' : 'Fixture evidence · simulated ticket creation')] : [])),
+    ...(editable ? [actions(button('investigate', response ? 'Investigate again' : 'Investigate issue', block)),
+      card('Refine goal or add constraints', [
+        content(plain('Optional. Leave the goal blank to use the issue’s title, description, and acceptance criteria.')),
+        { type: 'form', action_id: 'intake', action_type: 'remote', block_id: block,
+          elements: [{ type: 'input_layout', label: plain('Refined goal (optional)'), element: { type: 'plain_text_input',
+            action_id: 'outcome', action_type: 'client', initial_value: response && response.outcome.statement !== goal ? response.outcome.statement : '', max_length: 2000 } },
+          { type: 'input_layout', label: plain('Constraints (one per line)'), element: { type: 'plain_text_input', action_id: 'constraints',
+            action_type: 'client', multiline: true, initial_value: (response?.outcome.constraints ?? defaultConstraints).join('\n') } }],
+          submit_action: button('investigate', 'Investigate with refinements', block),
+        } as Snap,
+      ], true)] : []),
+  ], Boolean(response)));
   if (!response) return { snaps };
-  snaps.push(card('Findings', [content(plain(response.summary),
-    plain(`Reference: ${response.outcome.reference_time}. Original source dates and retrieval dates are shown separately.`),
-    plain(response.context_bundle.evidence.some(e => e.source_ref.dataset_id.includes('maple')) ? 'Replay of March 2026 evidence. This is not a live October incident.' : 'Source events and retrieval times are shown in each citation.')),
-    ...response.context_bundle.claims.flatMap(c => [content(plain(`${c.kind === 'fact' ? 'Source fact' : 'Inference'} · ${c.statement}`)),
+  const replay = response.context_bundle.evidence.some(e => e.source_ref.dataset_id.includes('maple'));
+  const sourceDate = new Date(response.outcome.reference_time).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+  const keyClaims = response.context_bundle.claims.filter(c => c.kind === 'inference' || /manual charges|recorded diagnosis|acceptance requirement/i.test(c.statement)).slice(0, 3);
+  snaps.push(card('Findings', [
+    content(plain(response.summary), plain(replay ? `Historical replay · ${sourceDate}` : `Evidence as of ${sourceDate}`)),
+    ...keyClaims.flatMap(c => [content(plain(`${c.kind === 'fact' ? 'Source fact' : 'Inference'} · ${c.statement}`)),
       actions(...c.evidence_ids.map(id => button('evidence', citationLabel(response, id), block, id)))]),
+    card('Supporting evidence', response.context_bundle.claims.flatMap(c => [
+      content(plain(`${c.kind === 'fact' ? 'Source fact' : 'Inference'} · ${c.statement}`)),
+      actions(...c.evidence_ids.map(id => button('evidence', citationLabel(response, id), block, id))),
+    ]), true),
   ]));
   if (response.questions.length) snaps.push(card('Clarification needed', [content(...response.questions.map(plain))]));
   const data = graphData(response, state.view);
@@ -72,7 +89,6 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
     content(plain(selectedRel ? `${selectedRel.basis.replaceAll('_', ' ')} · ${selectedRel.statement}` : selectedAction ? `Proposed work · ${selectedAction.title}` : selectedEntity ? selectedEntity.label
       : selectedDependency ? `Investigation order: ${selectedDependency.reason}` : 'Select a record or relationship to inspect its evidence.')),
     ...(selectedEvidence.length ? [actions(...selectedEvidence.map(id => button('evidence', citationLabel(response, id), block, id)))] : []),
-    content(plain('Investigation order is a plan instruction. Native dependency links are not created.')),
   ]));
   snaps.push(card('Relationship list', [content(...response.context_bundle.relationships.map(r => plain(
     `${response.context_bundle.entities.find(e => e.entity_id === r.from_entity_id)?.native?.display_id ?? r.from_entity_id} → ${response.context_bundle.entities.find(e => e.entity_id === r.to_entity_id)?.native?.display_id ?? r.to_entity_id}: ${r.statement} (${r.basis})`
@@ -80,27 +96,32 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
   const evidence = response.context_bundle.evidence.find(e => e.evidence_id === state.view.evidenceId);
   if (evidence) {
     const entity = response.context_bundle.entities.find(e => e.entity_id === evidence.entity_id)!;
-    snaps.push(card(`Evidence · ${evidence.source_ref.record_id} / ${entity.native?.display_id ?? 'archive only'}`, [content(
-      plain(evidence.excerpt.text), plain(`Source event: ${evidence.original_event_at ?? 'unknown'} · Retrieved: ${evidence.retrieved_at}`),
-      plain(`${evidence.source_ref.dataset_id} · ${evidence.source_ref.path} · ${evidence.coverage}`),
-      plain(`Original owner: ${evidence.source_owner.name ?? 'unresolved'} (${evidence.source_owner.resolution}). This does not assign new work.`),
-      plain(`Excerpt: ${evidence.excerpt.field_path} [${evidence.excerpt.start}, ${evidence.excerpt.end}) · unicode code points · SHA-256 ${evidence.source_ref.content_sha256}`)),
-      ...(entity.native?.url ? [actions({ ...button('open', 'Open in DevRev', block), href: entity.native.url })] : [])]));
+    snaps.push(card(`Evidence · ${entity.native?.display_id ?? evidence.source_ref.record_id}`, [content(
+      plain(evidence.excerpt.text), plain(`Source: ${evidence.original_event_at ?? 'Date unknown'} · ${evidence.coverage.replaceAll('_', ' ')}`)),
+      ...(entity.native?.url ? [actions({ ...button('open', 'Open in DevRev', block), href: entity.native.url })] : []),
+      card('Source details', [content(
+        plain(`${evidence.source_ref.dataset_id} · ${evidence.source_ref.path}`),
+        plain(`Retrieved: ${evidence.retrieved_at}`),
+        plain(`Original owner: ${evidence.source_owner.name ?? 'Unresolved'} (${evidence.source_owner.resolution}). This does not assign new work.`),
+        plain(`Excerpt: ${evidence.excerpt.field_path} [${evidence.excerpt.start}, ${evidence.excerpt.end}) · unicode code points · SHA-256 ${evidence.source_ref.content_sha256}`),
+      )], true),
+    ]));
   }
   if (response.context_bundle.gaps.length) snaps.push(card('Remaining questions', [content(...response.context_bundle.gaps.flatMap(g => [
-    plain(`${g.question} · Blocks: ${g.blocks.replaceAll('_', ' ')}`), plain(`${g.why_it_matters} ${g.next_step}`),
-  ]))]));
+    plain(g.question), plain(`${g.why_it_matters} ${g.next_step}`),
+  ]))], true));
   if (!graph) return { snaps };
   for (const action of graph.actions) {
     const owner = owners.find(o => o.id === action.owner_id);
     const part = response.context_bundle.entities.find(e => e.entity_id === action.part_entity_id)!;
-    snaps.push(card(`Proposed ticket · ${action.title}`, [content(plain(`Internal · ${part.label} (${part.native!.display_id})`),
-      { type: 'rich_text', text: action.body_markdown }, plain(`Saved owner: ${owner?.name ?? action.owner_id ?? 'Select an owner'}`)),
+    snaps.push(card('Proposed ticket', [content(plain(action.title), plain(`Internal · ${part.label} (${part.native!.display_id})`),
+      plain(`Owner: ${owner?.name ?? action.owner_id ?? 'Choose an owner'}`)),
       ...(plan?.state === 'review' || !plan ? [actions({ type: 'user_picker', action_id: `owner:${action.action_id}`, action_type: 'remote', block_id: block,
         user_types: ['dev_user'], max_selected_items: 1, initial_dev_users_selected_options: action.owner_id ? [action.owner_id] : [],
         placeholder: plain('Select current ticket owner') })] : []),
-      content(plain('Acceptance checks'), ...action.acceptance_checks.map(c => plain(`• ${c}`))),
-      actions(...action.evidence_ids.map(id => button('evidence', citationLabel(response, id), block, id))),
+      card('Ticket details & acceptance checks', [content({ type: 'rich_text', text: action.body_markdown }),
+        content(plain('Acceptance checks'), ...action.acceptance_checks.map(c => plain(`• ${c}`)))], true),
+      card('Ticket evidence', [actions(...action.evidence_ids.map(id => button('evidence', citationLabel(response, id), block, id)))], true),
     ]));
   }
   if (plan?.state === 'approved' || plan?.state === 'rejected') {
@@ -116,11 +137,11 @@ export function renderBrief(options: { state: UIState; signedState: string; resp
     ]));
   } else {
     const disabled = graph.actions.some(a => !a.owner_id) || Date.parse(graph.expires_at) <= Date.now() || response.context_bundle.gaps.some(g => ['investigation', 'execution'].includes(g.blocks));
-    snaps.push(card('Approve this revision', [content(plain(`Revision ${graph.revision} · Expires ${graph.expires_at}`),
-      plain(`Digest ${graph.plan_digest.slice(0, 12)} · ${graph.actions.length} internal execution ticket${graph.actions.length === 1 ? '' : 's'}`),
-      plain(disabled ? 'Select current owners and resolve any investigation blockers before approval.' : 'Owner changes are saved as a new revision before this approval becomes available.')),
+    snaps.push(card('Approve this revision', [content(plain(`${graph.actions.length} internal ticket${graph.actions.length === 1 ? '' : 's'} · Revision ${graph.revision}`),
+      plain(disabled ? 'Select current owners and resolve any investigation blockers before approval.' : 'The selected owners and ticket details are ready for approval.')),
       actions(button('approve', `Approve & ${preview ? 'simulate' : 'create'} ${graph.actions.length} ticket${graph.actions.length === 1 ? '' : 's'}`, block, 'approve', disabled),
-        button('reject', 'Reject plan', block))]));
+        button('reject', 'Reject plan', block)),
+      card('Review details', [content(plain(`Expires: ${graph.expires_at}`), plain(`Plan digest: ${graph.plan_digest}`))], true)]));
   }
   return { snaps };
 }

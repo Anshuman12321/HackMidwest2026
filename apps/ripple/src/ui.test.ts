@@ -114,3 +114,54 @@ test('snap-in forwards platform actor token, signed issue context and native act
   assert.deepEqual(JSON.parse(captured[0]!.init.body as string), { issue: 'ISS-42', action: { action_id: 'owner:test', block_id: 'signed', value: [actor] } });
   await assert.rejects(bridge([{ ...event, context: { secrets: {} } }], false), /actor context/);
 });
+
+test('one-click investigation derives the goal from the current issue without an intake form', async t => {
+  const s = await setup(t);
+  const original = s.native.issueBrief.bind(s.native);
+  s.native.issueBrief = async (a, id) => ({ ...await original(a, id), title: 'Renewals stall for a newly reported region' });
+  const initial = await s.controller.initialize(auth, s.issue);
+  const refinement = flatten(initial.snaps).find(n => (n.title as { text?: string } | undefined)?.text === 'Refine goal or add constraints')!;
+  assert.equal(refinement.default_collapsed, true);
+  const goalInput = flatten(initial.snaps).find(n => n.type === 'input_layout' && (n.element as Snap).action_id === 'outcome')!.element as Snap;
+  assert.equal(goalInput.initial_value, '');
+  const run = flatten(initial.snaps).find(n => n.type === 'button' && String(n.action_id).startsWith('investigate:'))!;
+  const ui = await s.controller.action(auth, { action_id: run.action_id, block_id: run.block_id, value: run.value }, s.issue);
+  const row = await s.service.store.db.connection(sql => sql.query('SELECT response FROM ripple_plans'));
+  assert.equal(row.rows[0]!.response.outcome.statement, 'Resolve ISS-42: Renewals stall for a newly reported region');
+  assert.deepEqual(row.rows[0]!.response.outcome.constraints, ['Do not change production settings', 'Keep customer updates as drafts']);
+  assert.ok(JSON.stringify(ui.snaps).includes('Proposed ticket'));
+  assert.equal(s.native.creates, 0);
+});
+
+test('blank optional goals use the issue; explicit refinements survive re-investigation', async t => {
+  const s = await setup(t);
+  const intake = flatten((await s.controller.initialize(auth, s.issue)).snaps).find(n => n.type === 'form')!;
+  await s.controller.action(auth, { action_id: intake.action_id, block_id: intake.block_id,
+    value: { outcome: { value: '   ' }, constraints: { value: '' } } }, s.issue);
+  let row = await s.service.store.db.connection(sql => sql.query('SELECT response FROM ripple_plans ORDER BY created_at DESC'));
+  const current = await s.native.issueBrief(auth, s.issue);
+  assert.equal(row.rows[0]!.response.outcome.statement, `Resolve ISS-42: ${current.title}`);
+  let ui = await s.controller.initialize(auth, s.issue);
+  const form = flatten(ui.snaps).find(n => n.type === 'form')!;
+  ui = await s.controller.action(auth, { action_id: form.action_id, block_id: form.block_id,
+    value: { outcome: { value: '  Verify subscription recovery for one affected account  ' }, constraints: { value: 'Keep customer updates as drafts' } } }, s.issue);
+  const run = flatten(ui.snaps).find(n => n.type === 'button' && String(n.action_id).startsWith('investigate:'))!;
+  await s.controller.action(auth, { action_id: run.action_id, block_id: run.block_id, value: run.value }, s.issue);
+  row = await s.service.store.db.connection(sql => sql.query('SELECT response FROM ripple_plans ORDER BY created_at DESC'));
+  assert.equal(row.rows[0]!.response.outcome.statement, 'Verify subscription recovery for one affected account');
+  assert.deepEqual(row.rows[0]!.response.outcome.constraints, ['Keep customer updates as drafts']);
+});
+
+test('fresh review accepts a valueless control after rejection and restores one-click intake', async t => {
+  const s = await setup(t);
+  const run = flatten((await s.controller.initialize(auth, s.issue)).snaps).find(n => n.type === 'button' && String(n.action_id).startsWith('investigate:'))!;
+  const view = await s.controller.action(auth, { action_id: run.action_id, block_id: run.block_id }, s.issue);
+  const reject = flatten(view.snaps).find(n => String(n.action_id).startsWith('reject:'))!;
+  const rejected = await s.controller.action(auth, { action_id: reject.action_id, block_id: reject.block_id }, s.issue);
+  assert.ok(JSON.stringify(rejected).includes('Plan rejected'));
+  const fresh = flatten(rejected.snaps).find(n => String(n.action_id).startsWith('new-review:'))!;
+  const reset = await s.controller.action(auth, { action_id: fresh.action_id, block_id: fresh.block_id }, s.issue);
+  assert.ok(flatten(reset.snaps).some(n => n.type === 'button' && n.text && (n.text as Snap).text === 'Investigate issue'));
+  assert.ok(!JSON.stringify(reset).includes('Plan rejected'));
+  assert.equal(s.native.creates, 0);
+});

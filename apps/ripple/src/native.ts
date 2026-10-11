@@ -32,9 +32,13 @@ export class DevRevGateway implements NativeGateway {
     return { token, workspace: this.policy.workspace, actorId: user.id };
   }
   async issue(auth: Auth, id: string) {
+    return (await this.issueBrief(auth, id)).native;
+  }
+  async issueBrief(auth: Auth, id: string) {
     const { work } = await this.call(auth, 'works.get', { id });
     if (!work || work.type !== 'issue' || !work.id?.includes(`:devo/${auth.workspace}:issue/`)) throw new RippleError('permission_denied', 'Start from an accessible issue in this workspace.');
-    return { id: work.id, display_id: work.display_id, url: null };
+    if (typeof work.title !== 'string' || !work.title.trim()) throw new RippleError('invalid_response', 'The issue needs a title before Ripple can investigate it.');
+    return { native: { id: work.id, display_id: work.display_id, url: null }, title: work.title, body: typeof work.body === 'string' ? work.body : '' };
   }
   async owners(auth: Auth, query: string): Promise<Owner[]> {
     // An actor-scoped MCP connection can supply hybrid_search results. Native roster is

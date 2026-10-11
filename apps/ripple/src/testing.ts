@@ -34,6 +34,12 @@ export class FakeNative implements NativeGateway {
     const native = fixture().context_bundle.entities.find(e => e.kind === 'issue')!.native!;
     if (id !== native.id && id !== native.display_id) throw new RippleError('permission_denied', 'Unknown issue.'); return native;
   }
+  async issueBrief(a: Auth, id: string) {
+    const native = await this.issue(a, id);
+    const entity = fixture().context_bundle.entities.find(e => e.native?.id === native.id)!;
+    const evidence = fixture().context_bundle.evidence.find(e => e.entity_id === entity.entity_id && e.excerpt.field_path.endsWith('description'));
+    return { native, title: entity.label, body: evidence?.excerpt.text ?? '' };
+  }
   async owners() { return [{ id: actor, name: 'Maanav', displayId: 'DEVU-6' }]; }
   async authorize(a: Auth, response: InvestigationResponse, _issue: string, checkOwners: boolean) {
     if (this.deny || a.workspace !== auth.workspace) throw new RippleError('permission_denied', 'Source access revoked.');

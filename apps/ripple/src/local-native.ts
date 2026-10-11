@@ -28,11 +28,15 @@ export class LocalNative implements NativeGateway {
     return this.auth;
   }
   async issue(auth: Auth, id: string): Promise<NativeObject> {
+    return (await this.issueBrief(auth, id)).native;
+  }
+  async issueBrief(auth: Auth, id: string) {
     this.scope(auth, id);
     const { work } = await this.call('works.get', { id });
     if (work?.id !== id || work.type !== 'issue' || typeof work.display_id !== 'string')
       throw new RippleError('permission_denied', 'Start from a currently readable native issue.');
-    return { id: work.id, display_id: work.display_id, url: null };
+    if (typeof work.title !== 'string' || !work.title.trim()) throw new RippleError('invalid_response', 'The issue needs a title before Ripple can investigate it.');
+    return { native: { id: work.id, display_id: work.display_id, url: null }, title: work.title, body: typeof work.body === 'string' ? work.body : '' };
   }
   async owners(auth: Auth, query: string): Promise<Owner[]> {
     this.scope(auth);

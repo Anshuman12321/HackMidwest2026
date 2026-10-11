@@ -16,7 +16,7 @@ function setup() {
       return { dev_user: { id: actor, state: 'active', full_name: 'Verified reader', display_id: 'DEVU-6' } };
     const record = records.find(r => r.id === args.id);
     const key = endpoint === 'works.get' ? 'work' : endpoint === 'parts.get' ? 'part' : 'account';
-    return { [key]: { ...record, type: record?.id.includes(':issue/') ? 'issue' : 'ticket' } };
+    return { [key]: { ...record, title: 'Current renewal issue', body: 'Acceptance criteria: avoid double billing.', type: record?.id.includes(':issue/') ? 'issue' : 'ticket' } };
   });
   const issue = records.find(r => r.id.includes(':issue/'))!;
   response.action_graph!.actions[0]!.owner_id = actor;
@@ -26,6 +26,8 @@ test('local gateway verifies current sources and reader, then simulates without 
   const s = setup();
   assert.equal((await s.native.authenticate(auth.token)).actorId, actor);
   assert.deepEqual(await s.native.issue(auth, s.issue.id), s.issue);
+  assert.equal((await s.native.issueBrief(auth, s.issue.id)).title, 'Current renewal issue');
+  assert.match((await s.native.issueBrief(auth, s.issue.id)).body, /Acceptance criteria/);
   assert.equal((await s.native.owners(auth, ''))[0]!.name, 'Verified reader');
   await s.native.authorize(auth, s.response, s.issue.id, true);
   const reads = s.calls.length;
