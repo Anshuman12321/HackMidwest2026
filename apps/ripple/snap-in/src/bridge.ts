@@ -1,11 +1,7 @@
-import { createHash } from 'node:crypto';
-import { Secrets } from '../../src/security.ts';
-
 export type Event = {
   payload: { object_id?: string; context?: { object_id?: string }; action?: unknown };
   context: { secrets: { actor_session_token?: string } };
-  input_data: { global_values: { ripple_service_url?: string }; keyrings?: Record<string, string>;
-    resources?: { keyrings?: Record<string, string> } };
+  input_data: { global_values: { ripple_service_url?: string } };
 };
 export type Status = {
   issue?: { id?: string; display_id?: string; title?: string };
@@ -16,10 +12,6 @@ export type Status = {
 };
 
 const STATUS_PATH = '/native/status';
-
-export function signProof(secret: string, path: string, raw: string, now = Date.now()) {
-  return new Secrets(secret).sign({ path, hash: createHash('sha256').update(raw).digest('hex'), timestamp: now }, 'bridge');
-}
 
 function serviceBase(value: string | undefined): URL | undefined {
   try { const url = new URL(value ?? ''); return url.protocol === 'https:' ? url : undefined; } catch { return undefined; }
@@ -57,11 +49,10 @@ export function render(issue: string, base: URL | undefined, status: Status | un
 
 export async function fetchStatus(event: Event, issue: string, base: URL): Promise<Status> {
   const token = event.context.secrets.actor_session_token;
-  const key = event.input_data.keyrings?.ripple_bridge_secret ?? event.input_data.resources?.keyrings?.ripple_bridge_secret;
-  if (!token || !key) throw new Error('missing actor context or bridge keyring');
+  if (!token) throw new Error('missing actor session token');
   const raw = JSON.stringify({ issue });
   const response = await fetch(new URL(STATUS_PATH, base), { method: 'POST', redirect: 'error', headers: {
-    Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Ripple-Bridge': signProof(key, STATUS_PATH, raw),
+    Authorization: `Bearer ${token}`, 'Content-Type': 'application/json',
   }, body: raw, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error(`status ${response.status}`);
   const value = await response.json() as Status;

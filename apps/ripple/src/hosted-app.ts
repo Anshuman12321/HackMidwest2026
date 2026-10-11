@@ -17,8 +17,6 @@ import type { Auth } from './types.ts';
 export type HostedConfig = {
   controller: Controller; auth: Auth; issue: string; accessCode: string; publicUrl: string;
   writesEnabled: boolean; cronSecret?: string; now?: () => number;
-  /** Verifies X-Ripple-Bridge proofs for /native/status. Must be a separate Secrets instance from the UI-state one. */
-  bridgeSecrets?: Secrets;
   /** e.g. https://app.devrev.ai/<org slug>; used only to build ticket URLs. */
   appUrl?: string;
 };
@@ -76,8 +74,6 @@ export function createHostedHandler(config: HostedConfig): Handler {
    * POST /native/status  (server-to-server, called by the DevRev snap-in launcher card)
    *
    * Auth (no access-code cookie, no Origin check; read-only):
-   *   X-Ripple-Bridge: Secrets(RIPPLE_BRIDGE_SECRET).sign({path:'/native/status', hash: sha256hex(raw body), timestamp: ms}, 'bridge')
-   *     valid only within 60s. RIPPLE_BRIDGE_SECRET is separate from RIPPLE_SECRET.
    *   Authorization: Bearer <DevRev actor session token>, verified via dev-users.self (active, same workspace),
    *     then the issue must be readable with that token (works.get).
    * Request body:  {"issue": "<issue DON>"}
@@ -86,19 +82,12 @@ export function createHostedHandler(config: HostedConfig): Handler {
    *                 "ticket": {"display_id","url"|null}|null,   // first created/reused ticket; url needs DEVREV_APP_URL
    *                 "open_url":"<RIPPLE_PUBLIC_URL>/?issue=<urlencoded DON>"}
    *   Status is from the latest ripple_hosted plan for the workspace + issue (any actor). Never returns evidence or tokens.
-   * Errors: 403 bad/stale proof or inactive/foreign user or unreadable issue, 401 missing bearer, 400 bad body.
+   * Errors: 403 inactive/foreign user or unreadable issue, 401 missing bearer, 400 bad body.
    */
   const nativeStatus = async (req: IncomingMessage, res: ServerResponse) => {
     const native = controller.service.native;
-    const signature = req.headers['x-ripple-bridge'];
-    if (!config.bridgeSecrets || !native.verifyMember) return json(res, { error: 'not_configured' }, 503);
+    if (!native.verifyMember) return json(res, { error: 'not_configured' }, 503);
     const raw = await body(req);
-    if (typeof signature !== 'string') return json(res, { error: 'permission_denied' }, 403);
-    try {
-      const proof = config.bridgeSecrets.verify<{ path: string; hash: string; timestamp: number }>(signature, 'bridge');
-      if (proof.path !== STATUS_PATH || typeof proof.timestamp !== 'number' || Math.abs(now() - proof.timestamp) > 60_000
-        || proof.hash !== createHash('sha256').update(raw).digest('hex')) return json(res, { error: 'permission_denied' }, 403);
-    } catch { return json(res, { error: 'permission_denied' }, 403); }
     const token = bearer(req);
     if (!token) return json(res, { error: 'unauthorized' }, 401);
     let ref: unknown;
@@ -191,13 +180,6 @@ export async function composeHosted(): Promise<Handler> {
   catch (error) { throw error instanceof HostedConfigError ? error : new HostedConfigError('RIPPLE_SECRET must contain at least 32 characters.'); }
   const accessCode = env('RIPPLE_ACCESS_CODE'), publicUrl = env('RIPPLE_PUBLIC_URL');
   try { new URL(publicUrl); } catch { throw new HostedConfigError('RIPPLE_PUBLIC_URL must be an absolute URL.'); }
-  let bridgeSecrets: Secrets | undefined;
-  const bridge = process.env.RIPPLE_BRIDGE_SECRET?.trim();
-  if (bridge) {
-    if (bridge.length < 32) throw new HostedConfigError('RIPPLE_BRIDGE_SECRET must contain at least 32 characters.');
-    if (bridge === process.env.RIPPLE_SECRET?.trim()) throw new HostedConfigError('RIPPLE_BRIDGE_SECRET must differ from RIPPLE_SECRET.');
-    bridgeSecrets = new Secrets(bridge);
-  }
   const token = env('DEVREV_TOKEN'), issue = env('RIPPLE_ISSUE_ID');
   const native = new DevRevGateway({ workspace: env('DEVREV_WORKSPACE_ID'), actors: new Set(list('RIPPLE_ACTOR_IDS')),
     owners: new Set(list('RIPPLE_ASSIGNABLE_OWNER_IDS')) });
@@ -209,7 +191,7 @@ export async function composeHosted(): Promise<Handler> {
     const { createHostedInvestigator } = await import('./hosted-agent.ts');
     const service = new RippleService(new Store(database), native, createHostedInvestigator({ token, root }), secrets);
     return createHostedHandler({ controller: new Controller(service, publicUrl, false), auth, issue, accessCode, publicUrl,
-      bridgeSecrets, appUrl: process.env.DEVREV_APP_URL?.trim() || undefined,
+      appUrl: process.env.DEVREV_APP_URL?.trim() || undefined,
       writesEnabled: (process.env.RIPPLE_WRITES_ENABLED ?? 'false').trim().toLowerCase() === 'true',
       cronSecret: process.env.CRON_SECRET?.trim() || undefined });
   } catch (error) { await database.pool.end().catch(() => {}); throw error; }

@@ -11,7 +11,7 @@ export type ReviewView = {
   questions: string[];
   gaps: { question: string; next_step: string }[];
   plan: null | {
-    plan_id: string; revision: number; digest: string; expires_at: string; approvable: boolean; blocked_reason: string | null;
+    plan_id: string; revision: number; digest: string; expires_at: string; expired: boolean; approvable: boolean; blocked_reason: string | null;
     tickets: { action_id: string; title: string; body: string; acceptance_checks: string[]; visibility: 'internal';
       part: { label: string; display_id: string | null }; owner: Owner | { id: string; name: string; displayId?: undefined } | null;
       evidence_ids: string[]; context_count: number }[];
@@ -45,10 +45,11 @@ export function reviewView(plan: Plan, view: View, owners: Owner[], appUrl?: str
     questions: r.questions,
     gaps: bundle.gaps.map(g => ({ question: g.question, next_step: g.next_step })),
     plan: graph ? {
-      plan_id: graph.plan_id, revision: graph.revision, digest: graph.plan_digest, expires_at: graph.expires_at,
+      plan_id: graph.plan_id, revision: graph.revision, digest: graph.plan_digest, expires_at: graph.expires_at, expired,
       approvable: plan.state === 'review' && !missingOwner && !expired && !blocking,
-      blocked_reason: missingOwner ? 'Choose a current owner for every ticket before approving.'
-        : expired ? 'This revision expired. Start a fresh review.' : blocking ? 'Resolve the blocking investigation questions first.' : null,
+      // Expiry wins: no owner or content change can revive an expired revision.
+      blocked_reason: expired ? 'This revision expired. Investigate again for a fresh revision.'
+        : missingOwner ? 'Choose a current owner for every ticket before approving.' : blocking ? 'Resolve the blocking investigation questions first.' : null,
       tickets: graph.actions.map(a => {
         const part = entity(a.part_entity_id);
         return { action_id: a.action_id, title: a.title, body: a.body_markdown, acceptance_checks: a.acceptance_checks, visibility: 'internal' as const,

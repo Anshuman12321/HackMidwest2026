@@ -7,7 +7,7 @@ export type ReviewData = {
   state: 'review' | 'approved' | 'rejected'; summary: string; as_of: string; replay: boolean;
   findings: { id: string; kind: 'fact' | 'inference'; statement: string; evidence_ids: string[] }[];
   questions: string[]; gaps: { question: string; next_step: string }[];
-  plan: null | { plan_id: string; revision: number; digest: string; expires_at: string; approvable: boolean; blocked_reason: string | null;
+  plan: null | { plan_id: string; revision: number; digest: string; expires_at: string; expired: boolean; approvable: boolean; blocked_reason: string | null;
     tickets: { action_id: string; title: string; body: string; acceptance_checks: string[]; part: { label: string; display_id: string | null };
       owner: Owner | null; evidence_ids: string[]; context_count: number }[] };
   result: null | { pending: boolean; status: string | null; error: string | null; approval: { actor: string; recorded_at: string } | null;
@@ -68,15 +68,20 @@ export function ReviewPane({ review, snaps, evidenceControls, owners, readOnly, 
   const buttons = flat(snaps).filter(s => s.type === 'button');
   const byPrefix = (prefix: string) => buttons.find(s => s.action_id?.startsWith(prefix));
   const approve = byPrefix('approve:'), reject = byPrefix('reject:'), reconcile = byPrefix('reconcile:'), fresh = byPrefix('new-review');
+  const reinvestigate = buttons.find(s => s.action_id === 'investigate' || s.action_id?.startsWith('investigate:'));
+  // The server reports a failed action as a "Review needed" card; surface its message here.
+  const problem = snaps.filter(s => (s.title as { text?: string } | undefined)?.text === 'Review needed')
+    .flatMap(s => flat([s]).filter(e => e.type === 'plain_text').map(e => String(e.text ?? ''))).find(t => t && t !== 'Review needed');
   const pickers = flat(snaps).filter(s => s.type === 'user_picker' && s.action_id?.startsWith('owner:'));
   const plan = review?.plan, result = review?.result;
   const contentForms = flat(snaps).filter(s => s.type === 'form' && s.action_id?.startsWith('content:'));
-  const canEdit = !readOnly && review?.state === 'review';
+  const expired = Boolean(plan?.expired);
+  const canEdit = !readOnly && review?.state === 'review' && !expired;
   // A save succeeded when the sealed revision moved past the one we saved from; the editor then closes.
   const savedRev = pendingSave && plan && plan.revision > pendingSave.revision ? pendingSave : null;
   useEffect(() => { if (savedRev) setEditing(null); }, [savedRev?.revision, plan?.revision]);
   useEffect(() => { if (!canEdit) setEditing(null); }, [canEdit]);
-  const deciding = review?.state === 'review' && !readOnly;
+  const deciding = review?.state === 'review' && !readOnly && !expired;
   const shortDigest = plan ? plan.digest.slice(0, 8) : '';
   const evidenceCount = plan ? new Set(plan.tickets.flatMap(t => t.evidence_ids)).size : 0;
 
@@ -86,6 +91,7 @@ export function ReviewPane({ review, snaps, evidenceControls, owners, readOnly, 
       : result?.status === 'completed' ? { tone: 'ok', head: 'Tickets created', sub: result.approval ? `Approved by ${result.approval.actor}.` : '' }
       : { tone: 'warn', head: `Write ${words(result?.status ?? 'unknown')}`, sub: 'Check the write status before taking another action.' })
     : !plan ? { tone: 'idle', head: 'Investigation complete', sub: 'No ticket is proposed yet.' }
+    : expired && review.state === 'review' ? { tone: 'warn', head: 'Review expired', sub: 'Revisions expire 30 minutes after the investigation. Investigate again to get a fresh revision you can approve.' }
     : readOnly ? { tone: 'idle', head: 'Review ready', sub: 'Read-only: approval is disabled in this mode.' }
     : plan.approvable ? { tone: 'go', head: 'Awaiting your decision', sub: `${plural(plan.tickets.length, 'ticket')} ready to approve.` }
     : { tone: 'warn', head: 'Not ready to approve', sub: plan.blocked_reason ?? '' };
@@ -103,6 +109,8 @@ export function ReviewPane({ review, snaps, evidenceControls, owners, readOnly, 
     <section className={`rp-sec rp-status rp-${status.tone}`} aria-label="Status">
       <div className="rp-row"><span className="rp-label">STATUS</span><span className={`rp-mode ${live ? 'is-live' : ''}`}><i />{modeLabel}</span></div>
       <h2>{status.head}</h2>{status.sub && <p>{status.sub}</p>}
+      {expired && review?.state === 'review' && !readOnly && reinvestigate && <div className="rp-actions"><button className="rp-approve" disabled={busy} onClick={() => void act(reinvestigate)}>Investigate again<span aria-hidden> →</span></button></div>}
+      {problem && !busy && !(expired && /expired/i.test(problem)) && <p className="rp-blocked" role="alert">{problem}</p>}
       {review && <p className="rp-meta">{review.replay ? 'Historical replay' : 'Evidence'} as of {new Date(review.as_of).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}</p>}
     </section>
 
@@ -130,7 +138,7 @@ export function ReviewPane({ review, snaps, evidenceControls, owners, readOnly, 
             <dt>Owner</dt><dd>{t.owner?.name ?? <em>Not chosen</em>}</dd>
             <dt>Evidence</dt><dd>{plural(t.evidence_ids.length, 'cited excerpt')}</dd>
           </dl>
-          {!readOnly && picker && review?.state === 'review' && <label className="rp-owner"><span>{t.owner ? 'CHANGE OWNER' : 'CHOOSE OWNER'}</span>
+          {canEdit && picker && <label className="rp-owner"><span>{t.owner ? 'CHANGE OWNER' : 'CHOOSE OWNER'}</span>
             <select disabled={busy} value={t.owner?.id ?? ''} onChange={e => { if (e.target.value) void act(picker, [e.target.value]); }}>
               <option value="">Choose current owner</option>
               {owners.map(o => <option key={o.id} value={o.id}>{o.name}{o.displayId ? ` · ${o.displayId}` : ''}</option>)}

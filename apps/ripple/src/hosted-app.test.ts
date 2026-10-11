@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { createHash } from 'node:crypto';
 import { TestDatabase, FakeNative, FixtureAgent, auth, actor, fixture, memberToken } from './testing.ts';
 import { Store } from './store.ts';
 import { RippleService } from './service.ts';
@@ -13,7 +12,6 @@ import hostedEntry from './hosted-app.ts';
 
 type Snap = { type: string; action_id?: string; block_id?: string; value?: unknown; elements?: Snap[] };
 const flatten = (snaps: Snap[]): Snap[] => snaps.flatMap(s => [s, ...flatten(s.elements ?? [])]);
-const BRIDGE = 'bridge-secret-for-status-tests-32-chars!!';
 const PUBLIC = 'https://ripple.example.test', CODE = 'correct horse battery';
 
 async function boot(t: { after: (fn: () => unknown) => void }, writesEnabled: boolean, now?: () => number) {
@@ -22,7 +20,7 @@ async function boot(t: { after: (fn: () => unknown) => void }, writesEnabled: bo
   const service = new RippleService(new Store(db), native, new FixtureAgent(), new Secrets('hosted-app-integration-secret-32-chars'));
   const controller = new Controller(service, PUBLIC, false);
   const handler = createHostedHandler({ controller, auth, issue: 'ISS-42', accessCode: CODE, publicUrl: PUBLIC, writesEnabled, cronSecret: 'cron-test-secret', now,
-    bridgeSecrets: new Secrets(BRIDGE), appUrl: 'https://app.devrev.ai/acme/' });
+    appUrl: 'https://app.devrev.ai/acme/' });
   const server = createServer((req, res) => void handler(req, res));
   await new Promise<void>(ok => server.listen(0, '127.0.0.1', ok));
   t.after(() => new Promise<void>(ok => { server.closeAllConnections(); server.close(() => ok()); }));
@@ -125,12 +123,9 @@ test('missing environment yields a clear 500 that names variables only', async (
 });
 
 const issueNative = fixture().context_bundle.entities.find(e => e.kind === 'issue')!.native!;
-const statusCall = (base: string, o: { issue?: unknown; token?: string | null; key?: string; path?: string; age?: number; raw?: string; proof?: string | null } = {}) => {
+const statusCall = (base: string, o: { issue?: unknown; token?: string | null; raw?: string } = {}) => {
   const raw = o.raw ?? JSON.stringify({ issue: o.issue ?? issueNative.id });
-  const proof = o.proof === undefined ? new Secrets(o.key ?? BRIDGE).sign({ path: o.path ?? '/native/status',
-    hash: createHash('sha256').update(raw).digest('hex'), timestamp: Date.now() - (o.age ?? 0) }, 'bridge') : o.proof;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (proof) headers['X-Ripple-Bridge'] = proof;
   if (o.token !== null) headers.Authorization = 'Bearer ' + (o.token ?? memberToken);
   return fetch(base + '/native/status', { method: 'POST', headers, body: raw });
 };
@@ -171,15 +166,8 @@ test('signed UI state cannot be replayed against another issue', async t => {
   assert.equal((await db.connection(sql => sql.query('SELECT * FROM ripple_plans'))).rows.length, 0);
 });
 
-test('/native/status authenticates the bridge proof and actor', async t => {
+test('/native/status authenticates the DevRev actor', async t => {
   const { base, native } = await boot(t, true);
-  assert.equal((await statusCall(base, { key: 'a-different-secret-that-is-32-chars-long' })).status, 403, 'bad proof');
-  assert.equal((await statusCall(base, { proof: null })).status, 403, 'no proof');
-  assert.equal((await statusCall(base, { age: 61_000 })).status, 403, 'stale');
-  assert.equal((await statusCall(base, { path: '/native/action' })).status, 403, 'wrong path');
-  const raw = JSON.stringify({ issue: issueNative.id });
-  const tampered = new Secrets(BRIDGE).sign({ path: '/native/status', hash: createHash('sha256').update(raw).digest('hex'), timestamp: Date.now() }, 'bridge');
-  assert.equal((await statusCall(base, { proof: tampered, raw: JSON.stringify({ issue: 'other' }) })).status, 403, 'body hash mismatch');
   assert.equal((await statusCall(base, { token: null })).status, 401);
   assert.equal((await statusCall(base, { token: 'not-a-token' })).status, 403);
   assert.equal((await statusCall(base, { raw: '{}' })).status, 400);

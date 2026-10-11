@@ -1,10 +1,6 @@
 version: "2"
 name: Ripple
 description: Shows Ripple review status on an issue and links to the Ripple web app.
-developer_keyrings:
-  - name: ripple_bridge_secret
-    display_name: Ripple service bridge secret
-    description: Authenticate server-to-server calls to the Ripple review service.
 inputs:
   organization:
     - name: ripple_service_url

@@ -34,7 +34,10 @@ test('owner names resolve and expired revisions are not approvable', () => {
   a.actions.forEach(x => { x.owner_id = owner.id; }); a.expires_at = '2000-01-01T00:00:00Z';
   const v = reviewView(p, view, [owner]).plan!;
   assert.equal(v.tickets[0]!.owner!.name, 'Test Owner');
-  assert.equal(v.approvable, false); assert.match(v.blocked_reason!, /expired/i);
+  assert.equal(v.approvable, false); assert.equal(v.expired, true); assert.match(v.blocked_reason!, /expired/i);
+  // Expiry is reported even when an owner is still missing, since choosing one cannot revive the revision.
+  a.actions.forEach(x => { x.owner_id = null as never; });
+  assert.match(reviewView(p, view, [owner]).plan!.blocked_reason!, /expired/i);
 });
 
 test('evidence appears only for the selected excerpt; rejected and approved states map to results', () => {
